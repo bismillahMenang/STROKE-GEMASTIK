@@ -7,6 +7,7 @@ const mongoose = require('mongoose');
 const authRoutes = require('./routes/auth');
 const sessionRoutes = require('./routes/sessions');
 const therapistRoutes = require('./routes/therapist');
+const patientRoutes = require('./routes/patient');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -24,6 +25,7 @@ mongoose.connect(process.env.MONGO_URI)
 
 app.use('/api/auth', authRoutes);
 app.use('/api/patient/sessions', sessionRoutes);
+app.use('/api/patient', patientRoutes);
 app.use('/api/therapist', therapistRoutes);
 
 app.get('/api/health', (req, res) => {
