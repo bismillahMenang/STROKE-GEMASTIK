@@ -3,6 +3,7 @@ const Patient = require('../models/Patient');
 const Session = require('../models/Session');
 const Therapist = require('../models/Therapist');
 const TherapistNote = require('../models/TherapistNote');
+const Assessment = require('../models/Assessment');
 const authMiddleware = require('../middleware/authMiddleware');
 
 const router = express.Router();
@@ -59,14 +60,39 @@ router.get('/patients/:patientId', async (req, res) => {
     const patient = await getAssignedPatient(req, req.params.patientId);
     if (!patient) return res.status(404).json({ error: true, message: 'Patient not found' });
 
-    const [sessions, notes] = await Promise.all([
+    const [sessions, notes, assessments] = await Promise.all([
       Session.find({ patientId: patient._id }).sort({ date: -1 }).limit(8),
       TherapistNote.find({ therapistId: req.user.id, patientId: patient._id }).sort({ createdAt: -1 }),
+      Assessment.find({ patientId: patient._id }).sort({ date: -1 }).limit(8),
     ]);
 
-    res.json({ patient, sessions, notes });
+    res.json({ patient, sessions, notes, assessments });
   } catch (err) {
     console.error('Get patient detail error:', err);
+    res.status(500).json({ error: true, message: 'Server error' });
+  }
+});
+
+// PATCH /therapist/patients/:patientId/sessions/:sessionId/review
+router.patch('/patients/:patientId/sessions/:sessionId/review', async (req, res) => {
+  try {
+    const patient = await getAssignedPatient(req, req.params.patientId);
+    if (!patient) return res.status(404).json({ error: true, message: 'Patient not found' });
+
+    const { reviewStatus } = req.body;
+    if (!['unreviewed', 'good', 'attention'].includes(reviewStatus)) {
+      return res.status(400).json({ error: true, message: 'Invalid review status' });
+    }
+
+    const session = await Session.findOneAndUpdate(
+      { _id: req.params.sessionId, patientId: patient._id },
+      { reviewStatus },
+      { new: true }
+    );
+    if (!session) return res.status(404).json({ error: true, message: 'Session not found' });
+    res.json({ session });
+  } catch (error) {
+    console.error('Update session review error:', error);
     res.status(500).json({ error: true, message: 'Server error' });
   }
 });
@@ -77,7 +103,7 @@ router.patch('/patients/:patientId/notes', async (req, res) => {
     const patient = await getAssignedPatient(req, req.params.patientId);
     if (!patient) return res.status(404).json({ error: true, message: 'Patient not found' });
 
-    const { weekNumber, note } = req.body;
+    const { weekNumber, note, templateKey } = req.body;
     if (!weekNumber || !note?.trim()) {
       return res.status(400).json({ error: true, message: 'Week number and note are required' });
     }
@@ -87,6 +113,7 @@ router.patch('/patients/:patientId/notes', async (req, res) => {
       patientId: patient._id,
       weekNumber,
       note: note.trim(),
+      templateKey,
     });
 
     res.status(201).json({ note: therapistNote });

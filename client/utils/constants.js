@@ -24,6 +24,30 @@ export const EXERCISES = {
     targetRom: 150,
     instruction: 'Pegang ponsel di telapak tangan. Tekuk siku mendekat ke bahu, lalu turunkan kembali dengan perlahan.',
   },
+  wrist_flexion: {
+    key: 'wrist_flexion',
+    name: 'Tekuk pergelangan',
+    description: 'Gerakkan pergelangan ke arah telapak dan punggung tangan.',
+    // Provisional target; replace with therapist-derived target after Phase 2 feedback.
+    targetRom: 60,
+    instruction: 'Letakkan lengan bawah dengan nyaman. Tekuk pergelangan ke arah telapak, lalu kembali perlahan.',
+  },
+  finger_extension: {
+    key: 'finger_extension',
+    name: 'Buka jari',
+    description: 'Buka jari perlahan lalu rilekskan kembali.',
+    // Provisional target; this is a monitoring target, not a clinical prescription.
+    targetRom: 30,
+    instruction: 'Letakkan tangan di permukaan datar. Buka jari selebar dan senyaman mungkin, lalu rilekskan.',
+  },
+  resistance_band_row: {
+    key: 'resistance_band_row',
+    name: 'Tarik resistance band',
+    description: 'Tarik band ke arah tubuh dengan bahu tetap rileks.',
+    // Provisional target; confirm resistance and range with a therapist before pilot use.
+    targetRom: 45,
+    instruction: 'Gunakan resistance band sesuai arahan terapis. Tarik perlahan ke arah tubuh tanpa menahan napas.',
+  },
 };
 
 export const EXERCISE_LIST = Object.values(EXERCISES);

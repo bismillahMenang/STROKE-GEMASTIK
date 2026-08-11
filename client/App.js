@@ -4,10 +4,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import AuthScreen from './screens/AuthScreen';
-import { syncPendingSessions, TOKEN_KEY } from './api/client';
+import { syncPendingAssessments, syncPendingSessions, TOKEN_KEY } from './api/client';
 import ExerciseSelect from './screens/ExerciseSelect';
 import ExerciseSession from './screens/ExerciseSession';
 import ProgressDashboard from './screens/ProgressDashboard';
+import FaceCheckScreen from './screens/FaceCheckScreen';
+import SpeechCheckScreen from './screens/SpeechCheckScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -33,6 +35,7 @@ function AuthenticatedApp({ onExpired }) {
       if (!storedToken) return;
       try {
         await syncPendingSessions(storedToken);
+        await syncPendingAssessments(storedToken);
       } catch (error) {
         if (error.response?.status === 401 && active) onExpired();
         else if (active) console.error('Background sync failed:', error.message);
@@ -49,6 +52,8 @@ function AuthenticatedApp({ onExpired }) {
         <Tab.Screen name="Exercises" component={ExerciseSelect} options={{ tabBarLabel: 'Latihan' }} />
         <Tab.Screen name="Progress" component={ProgressDashboard} options={{ tabBarLabel: 'Progres' }} />
         <Tab.Screen name="ExerciseSession" component={ExerciseSession} options={{ tabBarButton: () => null }} />
+        <Tab.Screen name="FaceCheck" component={FaceCheckScreen} options={{ tabBarButton: () => null }} />
+        <Tab.Screen name="SpeechCheck" component={SpeechCheckScreen} options={{ tabBarButton: () => null }} />
       </Tab.Navigator>
     </NavigationContainer>
   );

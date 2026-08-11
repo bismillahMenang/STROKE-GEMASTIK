@@ -44,8 +44,16 @@ textarea { min-height: 104px; resize: vertical; }
 .call-button { min-width: 170px; }
 .chart-wrap { height: 280px; margin-top: 20px; width: 100%; }
 .chart-empty { color: #888780; padding: 40px 0; }
-.session-table .table-head, .session-table .session-row { grid-template-columns: 1fr 1.2fr .8fr .7fr 1.6fr; }
+.session-table .table-head, .session-table .session-row { grid-template-columns: 1fr 1.2fr .8fr .7fr 1.6fr .7fr; }
 .session-row { border-bottom: 1px solid #E7E5DE; font-size: 14px; }
+.review-actions { display: flex; gap: 5px; }
+.review-actions button { background: #FFFFFF; border: 1px solid #D3D1C7; border-radius: 6px; color: #888780; cursor: pointer; min-height: 32px; min-width: 32px; }
+.review-actions .good { background: #EAF2E1; border-color: #3B6D11; color: #3B6D11; }
+.review-actions .attention { background: #FBEDE7; border-color: #993D1D; color: #993D1D; }
+.assessment-grid { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 18px; }
+.assessment-card { background: #F1EFE8; border-left: 3px solid #185FA5; display: grid; gap: 5px; padding: 14px; }
+.assessment-card span { color: #185FA5; font-size: 26px; font-weight: 700; }
+.assessment-card small { color: #888780; line-height: 1.4; }
 .notes-section { margin: -4px; }
 .note-form { align-items: end; display: grid; gap: 12px; grid-template-columns: 110px 1fr auto; margin-top: 22px; }
 .note-input { min-width: 0; }
@@ -55,4 +63,4 @@ textarea { min-height: 104px; resize: vertical; }
 .note-item div { display: flex; gap: 10px; justify-content: space-between; }
 .note-item span { color: #888780; font-size: 13px; }
 .note-item p { line-height: 1.55; margin: 10px 0 0; }
-@media (max-width: 760px) { .dashboard-shell { padding: 24px 16px 48px; } .auth-card { padding: 28px 22px; } .table-head { display: none; } .patient-row { gap: 8px; grid-template-columns: 1fr auto; padding: 14px 0; } .patient-row span:nth-child(2) { color: #888780; font-size: 13px; grid-column: 1; } .patient-row span:nth-child(3), .patient-row span:nth-child(4) { grid-column: 2; grid-row: 1; } .patient-row span:nth-child(4) { grid-row: 2; } .detail-header { display: block; } .call-button { margin-top: 20px; width: 100%; } .content-card { padding: 18px; overflow-x: auto; } .session-table { min-width: 700px; } .note-form { grid-template-columns: 1fr; } .section-heading { display: block; } .section-heading select { margin-top: 12px; width: 100%; } }
+@media (max-width: 760px) { .dashboard-shell { padding: 24px 16px 48px; } .auth-card { padding: 28px 22px; } .table-head { display: none; } .patient-row { gap: 8px; grid-template-columns: 1fr auto; padding: 14px 0; } .patient-row span:nth-child(2) { color: #888780; font-size: 13px; grid-column: 1; } .patient-row span:nth-child(3), .patient-row span:nth-child(4) { grid-column: 2; grid-row: 1; } .patient-row span:nth-child(4) { grid-row: 2; } .detail-header { display: block; } .call-button { margin-top: 20px; width: 100%; } .content-card { padding: 18px; overflow-x: auto; } .session-table { min-width: 760px; } .note-form { grid-template-columns: 1fr; } .section-heading { display: block; } .section-heading select { margin-top: 12px; width: 100%; } .assessment-grid { grid-template-columns: 1fr; } }

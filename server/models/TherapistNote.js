@@ -6,6 +6,7 @@ const therapistNoteSchema = new mongoose.Schema(
     patientId: { type: mongoose.Schema.Types.ObjectId, ref: 'Patient', required: true },
     weekNumber: { type: Number, required: true, min: 1, max: 8 },
     note: { type: String, required: true },
+    templateKey: { type: String },
   },
   { timestamps: true }
 );

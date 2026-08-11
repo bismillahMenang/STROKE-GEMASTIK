@@ -23,8 +23,13 @@ export async function fetchPatientDetail(patientId) {
 }
 
 export async function addWeeklyNote(patientId, weekNumber, note) {
-  const response = await api.patch(`/therapist/patients/${patientId}/notes`, { weekNumber, note }, authConfig());
+  const response = await api.patch(`/therapist/patients/${patientId}/notes`, { weekNumber, ...note }, authConfig());
   return response.data.note;
+}
+
+export async function updateSessionReview(patientId, sessionId, reviewStatus) {
+  const response = await api.patch(`/therapist/patients/${patientId}/sessions/${sessionId}/review`, { reviewStatus }, authConfig());
+  return response.data.session;
 }
 
 export function isUnauthorized(error) { return error.response?.status === 401; }

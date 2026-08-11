@@ -6,6 +6,7 @@ const Patient = require('./models/Patient');
 const Therapist = require('./models/Therapist');
 const Session = require('./models/Session');
 const TherapistNote = require('./models/TherapistNote');
+const Assessment = require('./models/Assessment');
 
 const demoPatients = [
   { name: 'Budi Demo', email: 'budi.demo@example.com', phone: '080000000001', diagnosis: 'Kelemahan lengan kanan, contoh data' },
@@ -36,6 +37,7 @@ async function run() {
   await therapist.save();
   await Session.deleteMany({ patientId: { $in: patients.map((patient) => patient._id) } });
   await TherapistNote.deleteMany({ therapistId: therapist._id });
+  await Assessment.deleteMany({ patientId: { $in: patients.map((patient) => patient._id) } });
 
   const exercises = [
     ['forearm_supination', 80],
@@ -54,6 +56,10 @@ async function run() {
   }
   await Session.insertMany(sessions);
   await TherapistNote.insertMany(patients.map((patient, index) => ({ therapistId: therapist._id, patientId: patient._id, weekNumber: 4, note: index === 1 ? 'Pantau kenyamanan bahu pada sesi berikutnya.' : 'Lanjutkan latihan rutin sesuai kemampuan.', })));
+  await Assessment.insertMany(patients.flatMap((patient, index) => [
+    { patientId: patient._id, date: new Date(Date.now() - 2 * 86400000), type: 'facial_asymmetry', score: 0.06 + index * 0.03, risk: index === 2 ? 'medium' : 'low', modelVersion: 'phase2-face-landmarks-0.1' },
+    { patientId: patient._id, date: new Date(Date.now() - 86400000), type: 'speech_clarity', score: 0.72 - index * 0.08, risk: index === 2 ? 'medium' : 'low', modelVersion: 'phase2-audio-baseline-0.1', consentedAt: new Date(Date.now() - 86400000) },
+  ]));
   await mongoose.disconnect();
   console.log('Demo seed complete: 1 therapist, 3 fictional patients, and 72 sessions.');
 }

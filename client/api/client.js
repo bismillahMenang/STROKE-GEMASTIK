@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { API_URL } from '../utils/constants';
 import { getSessions, updateSession } from '../utils/storage';
+import { getAssessments, updateAssessment } from '../utils/assessmentStorage';
 
 const TOKEN_KEY = '@pulihtrack/token';
 const PATIENT_KEY = '@pulihtrack/patient';
@@ -40,6 +41,31 @@ export async function uploadSession(session, token) {
 export async function fetchSessions(token) {
   const response = await apiClient.get('/patient/sessions?limit=8', { headers: { Authorization: `Bearer ${token}` } });
   return response.data.sessions;
+}
+
+export async function uploadAssessment(assessment, token) {
+  const response = await apiClient.post('/patient/assessments', {
+    date: assessment.date,
+    type: assessment.type,
+    score: assessment.score,
+    risk: assessment.risk,
+    modelVersion: assessment.modelVersion,
+    consentedAt: assessment.consentedAt,
+  }, { headers: { Authorization: `Bearer ${token}` } });
+  return response.data.assessment;
+}
+
+export async function syncPendingAssessments(token) {
+  const assessments = await getAssessments();
+  for (const assessment of assessments.filter((item) => item.pending)) {
+    try {
+      const uploaded = await uploadAssessment(assessment, token);
+      await updateAssessment(assessment.id, { pending: false, serverId: uploaded._id });
+    } catch (error) {
+      if (error.response?.status === 401) throw error;
+      console.error(`Failed to sync assessment ${assessment.id}:`, error.message);
+    }
+  }
 }
 
 export async function syncPendingSessions(token) {

@@ -6,7 +6,7 @@ const sessionSchema = new mongoose.Schema(
     date: { type: Date, required: true },
     exercise: {
       type: String,
-      enum: ['forearm_supination', 'shoulder_abduction', 'elbow_flexion'],
+      enum: ['forearm_supination', 'shoulder_abduction', 'elbow_flexion', 'wrist_flexion', 'finger_extension', 'resistance_band_row'],
       required: true,
     },
     peakRom: { type: Number },
@@ -19,6 +19,7 @@ const sessionSchema = new mongoose.Schema(
     notes: { type: String },
     gyroRawSampleCount: { type: Number },
     syncedAt: { type: Date },
+    reviewStatus: { type: String, enum: ['unreviewed', 'good', 'attention'], default: 'unreviewed' },
   },
   { timestamps: true }
 );
