@@ -1,8 +1,9 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
 import { EXERCISES } from '../utils/constants';
 
 export default function ROMChart({ sessions, exerciseKey }) {
+  const { width } = useWindowDimensions();
   const exercise = EXERCISES[exerciseKey];
   const filtered = sessions.filter((session) => session.exercise === exerciseKey).slice(0, 8).reverse();
 
@@ -29,7 +30,7 @@ export default function ROMChart({ sessions, exerciseKey }) {
       fromZero
       height={230}
       style={styles.chart}
-      width={340}
+      width={Math.max(280, width - 40)}
       yAxisSuffix="°"
     />
   );
