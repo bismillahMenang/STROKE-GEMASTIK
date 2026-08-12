@@ -1,0 +1,129 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Therapist {
+  id            String   @id @default(uuid())
+  name          String
+  email         String   @unique
+  passwordHash  String
+  licenseNumber String?
+  clinic        String?
+  patientIds    String[] @default([])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  notes TherapistNote[]
+}
+
+model Patient {
+  id                  String   @id @default(uuid())
+  name                String
+  email               String   @unique
+  phone               String?
+  passwordHash        String
+  diagnosis           String?
+  assignedTherapistId String?
+  language            Language @default(id)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  sessions    Session[]
+  assessments Assessment[]
+  notes       TherapistNote[]
+}
+
+model Session {
+  id                 String        @id @default(uuid())
+  patientId          String
+  date               DateTime
+  exercise           Exercise
+  peakRom            Float?
+  avgRom             Float?
+  repsCompleted      Int?
+  consistency        Consistency?
+  notes              String?
+  gyroRawSampleCount Int?
+  syncedAt           DateTime?
+  reviewStatus       ReviewStatus  @default(unreviewed)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId, date])
+}
+
+model Assessment {
+  id           String          @id @default(uuid())
+  patientId    String
+  date         DateTime
+  type         AssessmentType
+  score        Float
+  risk         RiskLevel       @default(unknown)
+  modelVersion String
+  consentedAt  DateTime?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId, date])
+}
+
+model TherapistNote {
+  id          String   @id @default(uuid())
+  therapistId String
+  patientId   String
+  weekNumber  Int
+  note        String
+  templateKey String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  therapist Therapist @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+  patient   Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+enum Language {
+  id
+  en
+}
+
+enum Exercise {
+  forearm_supination
+  shoulder_abduction
+  elbow_flexion
+  wrist_flexion
+  finger_extension
+  resistance_band_row
+}
+
+enum Consistency {
+  low
+  medium
+  high
+}
+
+enum ReviewStatus {
+  unreviewed
+  good
+  attention
+}
+
+enum AssessmentType {
+  facial_asymmetry
+  speech_clarity
+}
+
+enum RiskLevel {
+  low
+  medium
+  high
+  unknown
+}
