@@ -28,8 +28,8 @@ async function run() {
   if (patients.patients.length !== 3) throw new Error(`Expected 3 patients, got ${patients.patients.length}`);
   const detail = await request(`/therapist/patients/${patients.patients[0]._id}`, { headers: therapistHeaders });
   if (!detail.assessments?.length) throw new Error('Phase 2 assessments missing');
-  await request(`/therapist/patients/${detail.patient._id}/notes`, { method: 'PATCH', headers: therapistHeaders, body: JSON.stringify({ weekNumber: 8, note: 'Smoke test note', templateKey: 'continue' }) });
-  await request(`/therapist/patients/${detail.patient._id}/sessions/${detail.sessions[0]._id}/review`, { method: 'PATCH', headers: therapistHeaders, body: JSON.stringify({ reviewStatus: 'good' }) });
+  await request(`/therapist/patients/${detail.patient.id}/notes`, { method: 'PATCH', headers: therapistHeaders, body: JSON.stringify({ weekNumber: 8, note: 'Smoke test note', templateKey: 'continue' }) });
+  await request(`/therapist/patients/${detail.patient.id}/sessions/${detail.sessions[0].id}/review`, { method: 'PATCH', headers: therapistHeaders, body: JSON.stringify({ reviewStatus: 'good' }) });
   console.log('API smoke test passed:', { patientSessions: patientSessions.sessions.length, patients: patients.patients.length, detailSessions: detail.sessions.length, assessments: detail.assessments.length });
 }
 
