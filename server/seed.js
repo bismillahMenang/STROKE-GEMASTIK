@@ -1,12 +1,7 @@
 const path = require('path');
 const bcrypt = require('bcryptjs');
-const mongoose = require('mongoose');
 require('dotenv').config({ path: path.resolve(__dirname, '.env') });
-const Patient = require('./models/Patient');
-const Therapist = require('./models/Therapist');
-const Session = require('./models/Session');
-const TherapistNote = require('./models/TherapistNote');
-const Assessment = require('./models/Assessment');
+const prisma = require('./lib/prisma');
 
 const demoPatients = [
   { name: 'Budi Demo', email: 'budi.demo@example.com', phone: '080000000001', diagnosis: 'Kelemahan lengan kanan, contoh data' },
@@ -15,29 +10,47 @@ const demoPatients = [
 ];
 
 async function run() {
-  await mongoose.connect(process.env.MONGO_URI);
   const passwordHash = await bcrypt.hash('demo-password-123', 10);
-  const therapist = await Therapist.findOneAndUpdate(
-    { email: 'terapis.demo@example.com' },
-    { name: 'Terapis Demo', email: 'terapis.demo@example.com', passwordHash, clinic: 'Klinik Contoh PulihTrack' },
-    { upsert: true, new: true }
-  );
+
+  const therapist = await prisma.therapist.upsert({
+    where: { email: 'terapis.demo@example.com' },
+    update: {},
+    create: {
+      name: 'Terapis Demo',
+      email: 'terapis.demo@example.com',
+      passwordHash,
+      clinic: 'Klinik Contoh PulihTrack',
+    },
+  });
 
   const patients = [];
   for (const data of demoPatients) {
-    const patient = await Patient.findOneAndUpdate(
-      { email: data.email },
-      { ...data, passwordHash, assignedTherapistId: therapist._id },
-      { upsert: true, new: true }
-    );
+    const patient = await prisma.patient.upsert({
+      where: { email: data.email },
+      update: {},
+      create: {
+        ...data,
+        passwordHash,
+        assignedTherapistId: therapist.id,
+      },
+    });
     patients.push(patient);
   }
 
-  therapist.patientIds = patients.map((patient) => patient._id);
-  await therapist.save();
-  await Session.deleteMany({ patientId: { $in: patients.map((patient) => patient._id) } });
-  await TherapistNote.deleteMany({ therapistId: therapist._id });
-  await Assessment.deleteMany({ patientId: { $in: patients.map((patient) => patient._id) } });
+  await prisma.therapist.update({
+    where: { id: therapist.id },
+    data: { patientIds: patients.map((patient) => patient.id) },
+  });
+
+  await prisma.session.deleteMany({
+    where: { patientId: { in: patients.map((patient) => patient.id) } },
+  });
+  await prisma.therapistNote.deleteMany({
+    where: { therapistId: therapist.id },
+  });
+  await prisma.assessment.deleteMany({
+    where: { patientId: { in: patients.map((patient) => patient.id) } },
+  });
 
   const exercises = [
     ['forearm_supination', 80],
@@ -50,18 +63,58 @@ async function run() {
       for (const [exerciseIndex, [exercise, target]] of exercises.entries()) {
         const base = target * (0.55 + patientIndex * 0.04 + week * 0.025);
         const peakRom = Math.min(target, Math.round(base + exerciseIndex * 2));
-        sessions.push({ patientId: patient._id, date: new Date(Date.now() - ((7 - week) * 7 + exerciseIndex) * 86400000), exercise, peakRom, avgRom: Math.round(peakRom * 0.72), repsCompleted: 10, consistency: week > 3 ? 'high' : 'medium', notes: week === 5 && patientIndex === 1 ? 'Bahu terasa lelah.' : '', gyroRawSampleCount: 100, syncedAt: new Date() });
+        sessions.push({
+          patientId: patient.id,
+          date: new Date(Date.now() - ((7 - week) * 7 + exerciseIndex) * 86400000),
+          exercise,
+          peakRom,
+          avgRom: Math.round(peakRom * 0.72),
+          repsCompleted: 10,
+          consistency: week > 3 ? 'high' : 'medium',
+          notes: week === 5 && patientIndex === 1 ? 'Bahu terasa lelah.' : '',
+          gyroRawSampleCount: 100,
+          syncedAt: new Date(),
+        });
       }
     }
   }
-  await Session.insertMany(sessions);
-  await TherapistNote.insertMany(patients.map((patient, index) => ({ therapistId: therapist._id, patientId: patient._id, weekNumber: 4, note: index === 1 ? 'Pantau kenyamanan bahu pada sesi berikutnya.' : 'Lanjutkan latihan rutin sesuai kemampuan.', })));
-  await Assessment.insertMany(patients.flatMap((patient, index) => [
-    { patientId: patient._id, date: new Date(Date.now() - 2 * 86400000), type: 'facial_asymmetry', score: 0.06 + index * 0.03, risk: index === 2 ? 'medium' : 'low', modelVersion: 'phase2-face-landmarks-0.1' },
-    { patientId: patient._id, date: new Date(Date.now() - 86400000), type: 'speech_clarity', score: 0.72 - index * 0.08, risk: index === 2 ? 'medium' : 'low', modelVersion: 'phase2-audio-baseline-0.1', consentedAt: new Date(Date.now() - 86400000) },
-  ]));
-  await mongoose.disconnect();
+
+  await prisma.session.createMany({ data: sessions });
+  await prisma.therapistNote.createMany({
+    data: patients.map((patient, index) => ({
+      therapistId: therapist.id,
+      patientId: patient.id,
+      weekNumber: 4,
+      note: index === 1 ? 'Pantau kenyamanan bahu pada sesi berikutnya.' : 'Lanjutkan latihan rutin sesuai kemampuan.',
+    })),
+  });
+  await prisma.assessment.createMany({
+    data: patients.flatMap((patient, index) => [
+      {
+        patientId: patient.id,
+        date: new Date(Date.now() - 2 * 86400000),
+        type: 'facial_asymmetry',
+        score: 0.06 + index * 0.03,
+        risk: index === 2 ? 'medium' : 'low',
+        modelVersion: 'phase2-face-landmarks-0.1',
+      },
+      {
+        patientId: patient.id,
+        date: new Date(Date.now() - 86400000),
+        type: 'speech_clarity',
+        score: 0.72 - index * 0.08,
+        risk: index === 2 ? 'medium' : 'low',
+        modelVersion: 'phase2-audio-baseline-0.1',
+        consentedAt: new Date(Date.now() - 86400000),
+      },
+    ]),
+  });
+
+  await prisma.$disconnect();
   console.log('Demo seed complete: 1 therapist, 3 fictional patients, and 72 sessions.');
 }
 
-run().catch((error) => { console.error('Seed failed:', error); process.exit(1); });
+run().catch((error) => {
+  console.error('Seed failed:', error);
+  process.exit(1);
+});
