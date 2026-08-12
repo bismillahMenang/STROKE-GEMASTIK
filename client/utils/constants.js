@@ -1,5 +1,5 @@
 export const API_URL = __DEV__
-  ? 'http://<your-local-ip>:5000/api'
+  ? 'http://192.168.1.16:5000/api'
   : 'https://<your-deployed-backend>.onrender.com/api';
 
 export const EXERCISES = {
