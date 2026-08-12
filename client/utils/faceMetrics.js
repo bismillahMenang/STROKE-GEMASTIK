@@ -1,6 +1,6 @@
 const MEDIAPIPE_PAIR_COUNT = 12;
 
-export function calculateAsymmetryScore(input) {
+function calculateAsymmetryScore(input) {
   const points = collectPoints(input);
   if (points.length < MEDIAPIPE_PAIR_COUNT) return null;
 
@@ -24,7 +24,7 @@ export function calculateAsymmetryScore(input) {
   return Math.min(1, Math.max(0, round3(score)));
 }
 
-export function asymmetryRisk(score) {
+function asymmetryRisk(score) {
   if (score === null || score === undefined) return 'unknown';
   if (score < 0.08) return 'low';
   if (score < 0.18) return 'medium';
@@ -36,7 +36,11 @@ function collectPoints(input) {
   const visit = (value) => {
     if (!value || points.length > 1200) return;
     if (typeof value.x === 'number' && typeof value.y === 'number') { points.push({ x: value.x, y: value.y }); return; }
-    if (Array.isArray(value)) { value.forEach(visit); return; }
+    if (Array.isArray(value)) {
+      if (typeof value[0] === 'number' && typeof value[1] === 'number') { points.push({ x: value[0], y: value[1] }); return; }
+      value.forEach(visit);
+      return;
+    }
     if (typeof value === 'object') Object.values(value).forEach(visit);
   };
   visit(input?.faceLandmarks?.[0] || input?.landmarks || input?.contours || input);
@@ -44,3 +48,5 @@ function collectPoints(input) {
 }
 
 function round3(value) { return Math.round(value * 1000) / 1000; }
+
+module.exports = { calculateAsymmetryScore, asymmetryRisk };
