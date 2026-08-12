@@ -1,5 +1,5 @@
 const express = require('express');
-const Patient = require('../models/Patient');
+const prisma = require('../lib/prisma');
 const authMiddleware = require('../middleware/authMiddleware');
 
 const router = express.Router();
@@ -7,7 +7,10 @@ router.use(authMiddleware('patient'));
 
 router.get('/me', async (req, res) => {
   try {
-    const patient = await Patient.findById(req.user.id).select('-passwordHash');
+    const patient = await prisma.patient.findUnique({
+      where: { id: req.user.id },
+      omit: { passwordHash: true },
+    });
     if (!patient) return res.status(404).json({ error: true, message: 'Patient not found' });
     res.json({ patient });
   } catch (error) {
