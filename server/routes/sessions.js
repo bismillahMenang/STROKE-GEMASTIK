@@ -1,5 +1,5 @@
 const express = require('express');
-const Session = require('../models/Session');
+const prisma = require('../lib/prisma');
 const authMiddleware = require('../middleware/authMiddleware');
 
 const router = express.Router();
@@ -16,17 +16,19 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: true, message: 'Date and exercise are required' });
     }
 
-    const session = await Session.create({
-      patientId: req.user.id,
-      date: new Date(date),
-      exercise,
-      peakRom,
-      avgRom,
-      repsCompleted,
-      consistency,
-      notes,
-      gyroRawSampleCount,
-      syncedAt: syncedAt ? new Date(syncedAt) : new Date(),
+    const session = await prisma.session.create({
+      data: {
+        patientId: req.user.id,
+        date: new Date(date),
+        exercise,
+        peakRom,
+        avgRom,
+        repsCompleted,
+        consistency,
+        notes,
+        gyroRawSampleCount,
+        syncedAt: syncedAt ? new Date(syncedAt) : new Date(),
+      },
     });
 
     res.status(201).json({ session });
@@ -41,9 +43,11 @@ router.get('/', async (req, res) => {
   try {
     const limit = parseInt(req.query.limit, 10) || 8;
 
-    const sessions = await Session.find({ patientId: req.user.id })
-      .sort({ date: -1 })
-      .limit(limit);
+    const sessions = await prisma.session.findMany({
+      where: { patientId: req.user.id },
+      orderBy: { date: 'desc' },
+      take: limit,
+    });
 
     res.json({ sessions });
   } catch (err) {
@@ -57,15 +61,18 @@ router.patch('/:sessionId', async (req, res) => {
   try {
     const { notes } = req.body;
 
-    const session = await Session.findOneAndUpdate(
-      { _id: req.params.sessionId, patientId: req.user.id },
-      { notes },
-      { new: true }
-    );
+    const existing = await prisma.session.findFirst({
+      where: { id: req.params.sessionId, patientId: req.user.id },
+    });
 
-    if (!session) {
+    if (!existing) {
       return res.status(404).json({ error: true, message: 'Session not found' });
     }
+
+    const session = await prisma.session.update({
+      where: { id: req.params.sessionId },
+      data: { notes },
+    });
 
     res.json({ session });
   } catch (err) {
