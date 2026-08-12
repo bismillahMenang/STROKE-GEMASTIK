@@ -1,21 +1,24 @@
 const express = require('express');
-const Patient = require('../models/Patient');
-const Session = require('../models/Session');
-const Therapist = require('../models/Therapist');
-const TherapistNote = require('../models/TherapistNote');
-const Assessment = require('../models/Assessment');
+const prisma = require('../lib/prisma');
 const authMiddleware = require('../middleware/authMiddleware');
 
 const router = express.Router();
 router.use(authMiddleware('therapist'));
 
 async function getAssignedPatient(req, patientId) {
-  const therapist = await Therapist.findById(req.user.id).select('patientIds');
+  const therapist = await prisma.therapist.findUnique({
+    where: { id: req.user.id },
+    select: { patientIds: true },
+  });
   if (!therapist) return null;
 
-  const assigned = therapist.patientIds.some((id) => id.toString() === patientId);
+  const assigned = therapist.patientIds.includes(patientId);
   if (!assigned) return null;
-  return Patient.findById(patientId).select('-passwordHash');
+
+  return prisma.patient.findUnique({
+    where: { id: patientId },
+    omit: { passwordHash: true },
+  });
 }
 
 function calculateTrend(sessions) {
@@ -33,14 +36,25 @@ function calculateTrend(sessions) {
 // GET /therapist/patients
 router.get('/patients', async (req, res) => {
   try {
-    const therapist = await Therapist.findById(req.user.id).select('patientIds');
+    const therapist = await prisma.therapist.findUnique({
+      where: { id: req.user.id },
+      select: { patientIds: true },
+    });
     if (!therapist) return res.status(404).json({ error: true, message: 'Therapist not found' });
 
-    const patients = await Patient.find({ _id: { $in: therapist.patientIds } }).select('-passwordHash');
+    const patients = await prisma.patient.findMany({
+      where: { id: { in: therapist.patientIds } },
+      omit: { passwordHash: true },
+    });
+
     const result = await Promise.all(patients.map(async (patient) => {
-      const sessions = await Session.find({ patientId: patient._id }).sort({ date: -1 }).limit(3);
+      const sessions = await prisma.session.findMany({
+        where: { patientId: patient.id },
+        orderBy: { date: 'desc' },
+        take: 3,
+      });
       return {
-        _id: patient._id,
+        _id: patient.id,
         name: patient.name,
         lastSessionDate: sessions[0]?.date || null,
         trend: calculateTrend(sessions),
@@ -61,9 +75,20 @@ router.get('/patients/:patientId', async (req, res) => {
     if (!patient) return res.status(404).json({ error: true, message: 'Patient not found' });
 
     const [sessions, notes, assessments] = await Promise.all([
-      Session.find({ patientId: patient._id }).sort({ date: -1 }).limit(8),
-      TherapistNote.find({ therapistId: req.user.id, patientId: patient._id }).sort({ createdAt: -1 }),
-      Assessment.find({ patientId: patient._id }).sort({ date: -1 }).limit(8),
+      prisma.session.findMany({
+        where: { patientId: patient.id },
+        orderBy: { date: 'desc' },
+        take: 8,
+      }),
+      prisma.therapistNote.findMany({
+        where: { therapistId: req.user.id, patientId: patient.id },
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.assessment.findMany({
+        where: { patientId: patient.id },
+        orderBy: { date: 'desc' },
+        take: 8,
+      }),
     ]);
 
     res.json({ patient, sessions, notes, assessments });
@@ -84,12 +109,15 @@ router.patch('/patients/:patientId/sessions/:sessionId/review', async (req, res)
       return res.status(400).json({ error: true, message: 'Invalid review status' });
     }
 
-    const session = await Session.findOneAndUpdate(
-      { _id: req.params.sessionId, patientId: patient._id },
-      { reviewStatus },
-      { new: true }
-    );
-    if (!session) return res.status(404).json({ error: true, message: 'Session not found' });
+    const existing = await prisma.session.findFirst({
+      where: { id: req.params.sessionId, patientId: patient.id },
+    });
+    if (!existing) return res.status(404).json({ error: true, message: 'Session not found' });
+
+    const session = await prisma.session.update({
+      where: { id: req.params.sessionId },
+      data: { reviewStatus },
+    });
     res.json({ session });
   } catch (error) {
     console.error('Update session review error:', error);
@@ -108,12 +136,14 @@ router.patch('/patients/:patientId/notes', async (req, res) => {
       return res.status(400).json({ error: true, message: 'Week number and note are required' });
     }
 
-    const therapistNote = await TherapistNote.create({
-      therapistId: req.user.id,
-      patientId: patient._id,
-      weekNumber,
-      note: note.trim(),
-      templateKey,
+    const therapistNote = await prisma.therapistNote.create({
+      data: {
+        therapistId: req.user.id,
+        patientId: patient.id,
+        weekNumber,
+        note: note.trim(),
+        templateKey,
+      },
     });
 
     res.status(201).json({ note: therapistNote });
