@@ -3,7 +3,7 @@ const FRAME_COUNT = 24;
 const MEL_FILTER_COUNT = 20;
 const MFCC_COUNT = 13;
 
-export function extractSpeechFeatures(samples, sampleRate = 16000) {
+function extractSpeechFeatures(samples, sampleRate = 16000) {
   if (!samples.length) return null;
   const frames = [];
   const step = Math.max(1, Math.floor((samples.length - FRAME_SIZE) / FRAME_COUNT));
@@ -44,7 +44,7 @@ function extractFrame(frame, sampleRate) {
   return Array.from({ length: MFCC_COUNT }, (_, coefficient) => melEnergies.reduce((sum, energy, index) => sum + energy * Math.cos((Math.PI * coefficient * (index + 0.5)) / MEL_FILTER_COUNT), 0));
 }
 
-export async function inferSpeechClarity(features) {
+async function inferSpeechClarity(features) {
   if (!features) return null;
   const tf = await import('@tensorflow/tfjs');
   await tf.ready();
@@ -58,3 +58,44 @@ export async function inferSpeechClarity(features) {
   const clarityScore = Math.round(values[0] * 1000) / 1000;
   return { clarityScore, risk: clarityScore > 0.65 ? 'low' : clarityScore > 0.4 ? 'medium' : 'high', modelVersion: 'phase2-audio-baseline-0.1' };
 }
+
+function computeDysarthriaScore(audioInput, sampleRate = 16000) {
+  const samples = getSamples(audioInput);
+  if (samples.length < 512) return 0;
+
+  const frameSize = 512;
+  const rmsValues = [];
+  for (let start = 0; start + frameSize <= samples.length; start += frameSize) {
+    const frame = samples.slice(start, start + frameSize);
+    rmsValues.push(Math.sqrt(frame.reduce((sum, value) => sum + value ** 2, 0) / frame.length));
+  }
+  const meanRms = rmsValues.reduce((sum, value) => sum + value, 0) / rmsValues.length;
+  const variance = rmsValues.reduce((sum, value) => sum + (value - meanRms) ** 2, 0) / rmsValues.length;
+  const volumeStd = Math.sqrt(variance) / (meanRms + 1e-8);
+  const silenceFraction = samples.filter((sample) => Math.abs(sample) < 0.01).length / samples.length;
+  let crossings = 0;
+  for (let index = 1; index < samples.length; index += 1) if ((samples[index] >= 0) !== (samples[index - 1] >= 0)) crossings += 1;
+  const frequencySpread = (crossings / samples.length) * (sampleRate / 2);
+
+  let score = 1;
+  if (volumeStd > 0.3) score -= 0.2;
+  if (silenceFraction > 0.4) score -= 0.2;
+  if (frequencySpread < 2000) score -= 0.2;
+  if (volumeStd > 1.0) score -= 0.2;
+  if (silenceFraction > 0.6) score -= 0.2;
+  if (frequencySpread < 1000) score -= 0.1;
+  return Math.round(Math.max(0, Math.min(1, score)) * 1000) / 1000;
+}
+
+function getSamples(audioInput) {
+  if (Array.isArray(audioInput) || audioInput instanceof Float32Array) return Array.from(audioInput);
+  if (audioInput?.getChannelData) return Array.from(audioInput.getChannelData(0));
+  return [];
+}
+
+module.exports = {
+  extractSpeechFeatures,
+  inferSpeechClarity,
+  computeDysarthriaScore,
+  computeDysarthriScore: computeDysarthriaScore,
+};
