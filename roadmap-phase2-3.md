@@ -1,39 +1,33 @@
 # Roadmap: Phase 2 & Phase 3
-## What comes after the MVP
+## Authorized extensions beyond the MVP
 
 **Companion to:** `prd.md` (§5 Out of Scope references this document for "when")
-**Status:** Planning only — do NOT build any of this until MVP (Phase 0–8 in `implementation_plan.md`) is complete and pilot-validated.
+**Status:** Approved for implementation — Phase 2 has no MVP or pilot entry gate.
 
 ---
 
-## Gate: MVP must clear before Phase 2 starts
+## Phase 2 authorization
 
-Do not start Phase 2 until:
-- [ ] MVP release criteria in `prd.md` §7 are met
-- [ ] Pilot with ≥15 patients + ≥1 therapist has run for ≥4 weeks
-- [ ] ROM accuracy validated at ≥75% agreement with therapist goniometer
-- [ ] You have therapist + patient feedback in hand (not just internal opinion)
-
-Building Phase 2 features before this gate is exactly the scope creep `rules.md` warns against.
+Phase 2 is approved to begin immediately. There is no MVP release, pilot, accuracy, feedback, or other prerequisite for starting Phase 2. Those items remain validation and release-quality inputs, not entry gates.
 
 ---
 
-## Phase 2 (post-MVP, ~6–8 weeks): Multi-modal detection
+## Phase 2 (~6–8 weeks): Multi-modal detection
 
-**Goal:** Add the two signal types that were deliberately deferred — camera and audio — now backed by real pilot data showing gyroscope-only isn't sufficient on its own.
+**Goal:** Extend the gyroscope-based product with camera and audio signals. Pilot data can inform prioritization and tuning, but it is not required before implementation starts.
 
 ### 2.1 Camera — facial asymmetry detection
-- Library: MediaPipe Face Landmarker (on-device, free, pre-trained)
+- Capture: `expo-camera` (Expo SDK 57-compatible)
+- Library: `@mediapipe/tasks-vision` or a maintained React Native-compatible wrapper
 - Feature: during a short guided "smile/say ahh" check, capture face landmarks, compute a symmetry score (distance of left vs right landmark pairs from midline)
 - Output: asymmetry score (0–1), shown to therapist as a supplementary signal — **not** a diagnosis
-- New dependency: `@mediapipe/tasks-vision` or equivalent RN wrapper
 - Validation needed: test against ≥20 patients with known asymmetry status; target ≥75% agreement with clinical visual assessment
 
 ### 2.2 Audio — speech clarity check
-- Library: TensorFlow Lite audio model (pre-trained where possible, e.g. adapted from open speech datasets)
+- Capture: `expo-audio` (Expo SDK 57-compatible; replaces the older `expo-av` choice)
+- Inference: `@tensorflow/tfjs` + `@tensorflow/tfjs-react-native` + `expo-gl`, or a smaller compatible on-device inference runtime
 - Feature: 10-second recording of a standard phrase, extract MFCC features, output a clarity/dysarthria-risk score
-- New dependency: `expo-av` (recording) + `tfjs-react-native` or a lightweight on-device inference approach
-- Privacy note: audio is more sensitive than gyroscope data — needs an explicit consent screen before Phase 2 audio features ship (update `tech-spec.md` §7 privacy section when this lands)
+- Privacy note: audio is more sensitive than gyroscope data — require explicit consent before recording, process on-device, and do not upload raw recordings. The dependency approval is already recorded in `tech-spec.md` §2.1.
 
 ### 2.3 Expanded exercise library
 - Add 3–5 more exercises (wrist flexion, finger extension, resistance-band variants) based on therapist feedback from MVP pilot on what patients actually need next as they progress
@@ -42,7 +36,7 @@ Building Phase 2 features before this gate is exactly the scope creep `rules.md`
 - Session flagging that persists server-side (MVP only had this as a UI-only toggle per `app-flow.md` §2.3 note)
 - Simple templated note options alongside free text (speeds up therapist workflow)
 
-**Exit criteria for Phase 2:** Multi-modal detection validated in a second pilot; therapist dashboard reflects richer data without becoming harder to scan quickly.
+**Exit criteria for Phase 2:** Multi-modal detection is validated in a second pilot; the therapist dashboard reflects richer data without becoming harder to scan quickly. These are release criteria, not Phase 2 entry conditions.
 
 ---
 
@@ -82,7 +76,7 @@ Building Phase 2 features before this gate is exactly the scope creep `rules.md`
 - Bahasa Indonesia first
 - Therapist positioned as "assisted by," never "replaced by," the app
 - No feature ships without a validation step against real clinical data — this project's credibility (and GEMASTIK score) depends on evidence, not just working code
-- Scope discipline per `rules.md` — each phase gets its own gate before the next begins
+- Scope discipline per `rules.md` — each phase has its own validation and exit criteria; no Phase 2 entry gate applies
 
 ---
 

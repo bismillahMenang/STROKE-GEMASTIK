@@ -4,7 +4,7 @@
 **Companion to:** `prd.md`, `tech-spec.md`, `app-flow.md`
 **Audience:** AI coding agent (e.g. Claude Code) executing this build, or a human following along
 
-**How to use this document:** Execute steps in order. Each step has a clear deliverable and a verification action. Do not proceed to the next step until the current step's verification passes. Do not implement anything from a later phase early, even if it seems convenient — see `rules.md` for the reasoning.
+**How to use this document:** This document defines the MVP sequence only. Execute its steps in order when working on MVP; each step has a clear deliverable and verification action. Roadmap Phase 2 is authorized independently by `roadmap-phase2-3.md` and must not be mixed into these MVP steps.
 
 ---
 
@@ -190,13 +190,12 @@
 
 ---
 
-## Explicit non-steps (do not do these in this plan)
+## Explicit non-steps (MVP scope only)
 
-- Do not add camera or audio capture at any phase — see `tech-spec.md` §10.
+- Do not add camera, audio, or ML capture while executing MVP Phases 0–8. These capabilities are approved for roadmap Phase 2 in `roadmap-phase2-3.md` and `tech-spec.md` §2.1.
 - Do not add push notifications.
 - Do not add BPJS/payment integration.
 - Do not add a multi-therapist admin console.
-- If a step seems to require one of the above to "feel complete," stop and note it as a Phase 2/3 item rather than implementing it — see `rules.md`.
 
 ---
 

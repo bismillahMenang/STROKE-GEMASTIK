@@ -1,10 +1,10 @@
 # Product Requirements Document (PRD)
 ## StrokeApp — Home Stroke Rehabilitation Monitor
 
-**Version:** 1.0 (MVP)
-**Status:** Draft for development
+**Version:** 1.1 (MVP + Phase 2 authorization)
+**Status:** Approved for MVP and Phase 2 development
 **Owner:** [Your name]
-**Last updated:** [Date]
+**Last updated:** 2026-08-12
 
 ---
 
@@ -29,12 +29,16 @@ Enable a stroke survivor to perform 3 standardized arm-rehab exercises at home u
 - ≥3.5/5 average patient satisfaction score
 - ≥1 partner therapist actively using the dashboard weekly
 
+### Roadmap Phase 2 authorization
+
+Roadmap Phase 2 is approved to begin immediately after this document update. MVP release criteria, pilot duration, ROM accuracy, and stakeholder feedback remain validation and release-quality targets; none is an entry gate for roadmap Phase 2 implementation.
+
 ### Non-goals (explicitly out of scope for MVP)
 - Diagnosing stroke or any medical condition
 - Replacing therapist judgment or in-person assessment
 - Real-time AI coaching or form correction
-- Camera-based facial asymmetry detection (Phase 2)
-- Audio-based speech/dysarthria detection (Phase 2)
+- Camera-based facial asymmetry detection (not in MVP; authorized in roadmap Phase 2)
+- Audio-based speech/dysarthria detection (not in MVP; authorized in roadmap Phase 2)
 - BPJS/insurance claims integration (Phase 3)
 - Prescription or medication management
 - Multi-language support beyond Bahasa Indonesia + English
@@ -104,10 +108,10 @@ Each exercise screen shows: name, short instruction text, an illustrative image/
 
 ## 5. Out of Scope — Detailed
 
-Explicitly **not** built in MVP, to prevent scope creep:
+Explicitly **not** built in MVP, to prevent scope creep. Items marked roadmap Phase 2 are authorized to start without an MVP entry gate; validation is performed during implementation and before roadmap Phase 2 release.
 
-- **Camera/CV features** (facial asymmetry detection) — requires ML model training + clinical validation lead time; deferred to Phase 2.
-- **Audio features** (dysarthria/speech detection) — same reasoning; Phase 2.
+- **Camera/CV features** (facial asymmetry detection) — approved for roadmap Phase 2 using the dependencies listed in `tech-spec.md` §2.1.
+- **Audio features** (dysarthria/speech detection) — approved for roadmap Phase 2 using explicit consent and on-device processing.
 - **Real-time form-correction feedback** ("raise your arm higher") — requires more advanced sensor fusion; Phase 3.
 - **Spasticity or pain measurement** — outside gyroscope's measurable scope.
 - **BPJS/insurance integration** — regulatory complexity; validate clinical value first.
@@ -130,11 +134,13 @@ Explicitly **not** built in MVP, to prevent scope creep:
 
 ## 7. Release Criteria (Definition of Done for MVP)
 
+These criteria define the MVP baseline and are not a gate for starting roadmap Phase 2.
+
 - [ ] All 3 exercises functional end-to-end on a physical iOS and Android device
 - [ ] Sessions persist offline and sync correctly when connectivity returns
 - [ ] Therapist can log in, view at least 1 real patient's data, and leave a note
 - [ ] Bahasa Indonesia strings cover 100% of patient- and therapist-facing UI
-- [ ] No ML/camera/audio dependencies present in the codebase (kept out per scope)
+- [ ] MVP core path remains functional when Phase 2 camera/audio capabilities are disabled
 - [ ] Pilot-ready: can be handed to 1 therapist + up to 20 patients without developer intervention
 
 ---
@@ -153,3 +159,4 @@ Explicitly **not** built in MVP, to prevent scope creep:
 - `app-flow.md` — screen-by-screen navigation
 - `design-brief.md` — visual design system
 - `rules.md` — AI agent coding constraints
+- `roadmap-phase2-3.md` — authorized Phase 2 and Phase 3 scope

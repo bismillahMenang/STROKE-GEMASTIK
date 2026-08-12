@@ -1,7 +1,7 @@
 # Rules for AI Coding Agents
 ## StrokeApp — Global Constraints
 
-This file (also referenced as `AGENTS.md`) applies to any AI agent (Claude Code, Cursor, Copilot Workspace, etc.) working on this repository. Read this **before** reading `implementation_plan.md` and executing any step.
+This file (also referenced as `AGENTS.md`) applies to any AI agent (Claude Code, Cursor, Copilot Workspace, etc.) working on this repository. Read this **before** reading `implementation_plan.md` and executing any MVP or Phase 2 step.
 
 ---
 
@@ -9,10 +9,11 @@ This file (also referenced as `AGENTS.md`) applies to any AI agent (Claude Code,
 
 1. `prd.md` — what we're building and why. If a requested feature isn't here, don't build it without asking.
 2. `tech-spec.md` — the technical contract. Don't substitute libraries, add dependencies, or change the data model without updating this file first.
-3. `implementation_plan.md` — the build sequence. Execute in order; don't skip ahead.
-4. `app-flow.md` — exact screen/button behavior. If UI logic is ambiguous, this is the source of truth, not your judgment.
-5. `design-brief.md` — visual system. Use the specified colors, spacing, and components; don't invent a new visual language.
-6. `rules.md` (this file) — constraints that apply across all of the above.
+3. `roadmap-phase2-3.md` — the authorized roadmap Phase 2 (multi-modal) and Phase 3 scope. Roadmap Phase 2 is approved to start without an entry gate.
+4. `implementation_plan.md` — the MVP build sequence. Execute MVP steps in order; roadmap Phase 2 work follows the roadmap.
+5. `app-flow.md` — exact screen/button behavior. If UI logic is ambiguous, this is the source of truth, not your judgment.
+6. `design-brief.md` — visual system. Use the specified colors, spacing, and components; don't invent a new visual language.
+7. `rules.md` (this file) — constraints that apply across all of the above.
 
 If any two documents conflict, `prd.md` wins on product decisions and `tech-spec.md` wins on technical decisions. Flag the conflict rather than silently picking one.
 
@@ -20,14 +21,16 @@ If any two documents conflict, `prd.md` wins on product decisions and `tech-spec
 
 ## 2. Scope Discipline (most important rule)
 
-This is an MVP for a national student competition (GEMASTIK) with a hard deadline. **Scope creep is the primary risk, not lack of features.**
+The MVP remains a narrow deliverable for a national student competition (GEMASTIK) with a hard deadline. **Unapproved scope is the primary risk, not lack of features.**
 
-- Do **not** add machine learning, computer vision, or audio processing of any kind. See `tech-spec.md` §10 for the explicit non-dependency list. If a task seems to need one of these, stop and write a note in the PR/commit message flagging it as a Phase 2 item — do not implement it.
-- Do **not** add features not listed in `prd.md` §4, even if they seem like "obvious" improvements (push notifications, social features, gamification, multi-language beyond ID/EN, admin consoles). See `prd.md` §5 for the explicit out-of-scope list.
+- MVP work (Phases 0–8 in `implementation_plan.md`) must remain gyroscope-first and must not add ML, computer vision, or audio capture.
+- Roadmap Phase 2 is explicitly approved to start immediately. Camera, audio, and on-device ML/CV are in scope for roadmap Phase 2 and may use the dependencies approved in `tech-spec.md` §2.1. There is no MVP release, pilot, accuracy, feedback, or other entry gate for roadmap Phase 2.
+- For MVP, do **not** add features not listed in `prd.md` §4, even if they seem like "obvious" improvements (push notifications, social features, gamification, multi-language beyond ID/EN, admin consoles). For Phase 2, implement only capabilities explicitly authorized in `prd.md` and `roadmap-phase2-3.md`.
+- Do **not** add Phase 3 capabilities while implementing roadmap Phase 2 unless they are explicitly moved into the active scope in the roadmap.
 - Do **not** "polish" beyond what `design-brief.md` specifies (no dark mode, no custom animations beyond what's described, no onboarding carousels).
 - If you believe something out-of-scope is actually necessary for the MVP to function, say so explicitly and explain why, rather than quietly adding it.
 
-**When in doubt, build less, not more.** A working narrow product beats a broken broad one, especially against a competition deadline.
+**When in doubt, build the smallest approved slice.** A working focused product beats a broken broad one, especially against a competition deadline.
 
 ---
 
@@ -74,6 +77,7 @@ This is an MVP for a national student competition (GEMASTIK) with a hard deadlin
 - Passwords: always hashed via `bcryptjs`, never logged, never returned in any API response (including error messages).
 - JWT secret: must come from environment variable, never hardcoded, never committed.
 - Raw gyroscope time-series data stays on-device per `tech-spec.md` §7 — do not add a "send raw sensor data to server" feature without explicit sign-off, since it wasn't in the original privacy design.
+- Roadmap Phase 2 camera frames and audio recordings are processed on-device and are not uploaded or retained by default. Audio capture requires explicit user consent before recording; derived metrics only may be synced unless `tech-spec.md` is updated.
 - Do not add third-party analytics/tracking SDKs — not specified in `tech-spec.md` and not appropriate for a health-adjacent MVP without a privacy policy in place.
 
 ---
@@ -83,7 +87,7 @@ This is an MVP for a national student competition (GEMASTIK) with a hard deadlin
 Full automated test suites are not required for MVP given the timeline, but:
 - The `calculateROM` function in `utils/gyroProcessing.js` should have at least a basic script or manual verification (per `implementation_plan.md` Step 3.1) since it's the core domain logic and hardest to eyeball-verify.
 - Before marking any `implementation_plan.md` phase complete, perform the "Verify" step listed for each task manually — do not mark a step done without actually running the verification.
-- Do not skip the Phase 8 end-to-end smoke test — this is the closest thing to a release gate this project has.
+- Do not skip the Phase 8 end-to-end smoke test — it remains the MVP readiness check, but it is not a prerequisite for starting roadmap Phase 2.
 
 ---
 
@@ -91,7 +95,7 @@ Full automated test suites are not required for MVP given the timeline, but:
 
 - If a requirement in `prd.md` is ambiguous (see `prd.md` §8 Open Questions), use the stated assumption in that section rather than inventing a new one.
 - If `tech-spec.md` doesn't specify something (e.g., exact retry backoff timing for sync), choose the simplest reasonable default and note the choice in a code comment — don't leave it unaddressed, but don't over-engineer it either.
-- If a step in `implementation_plan.md` seems to require information not present in any of the six documents, stop and ask rather than guessing — especially for anything touching data schema changes, new dependencies, or scope boundaries.
+- If a step requires a dependency outside the approved stack in `tech-spec.md` §2 or §2.1, update the technical contract before installing it. Dependencies already approved in §2.1 may be used directly; no additional roadmap Phase 2 entry approval is required.
 
 ---
 
@@ -100,11 +104,11 @@ Full automated test suites are not required for MVP given the timeline, but:
 A task is not done until:
 1. It matches the relevant spec in `tech-spec.md` / `app-flow.md` / `design-brief.md`
 2. It passes its stated "Verify" step in `implementation_plan.md`
-3. It introduces no new dependency not listed in `tech-spec.md` §2 (or the addition has been explicitly discussed and this document updated)
+3. It introduces no dependency outside the lists in `tech-spec.md` §2 and §2.1 (or the technical contract has been updated before installation)
 4. It's committed with a clear message per §4 above
 5. It does not silently expand scope per §2 above
 
 ---
 
 ## 9. Related documents
-- `prd.md`, `tech-spec.md`, `implementation_plan.md`, `app-flow.md`, `design-brief.md` — all referenced above as the documents this file governs.
+- `prd.md`, `tech-spec.md`, `roadmap-phase2-3.md`, `implementation_plan.md`, `app-flow.md`, `design-brief.md` — all referenced above as the documents this file governs.

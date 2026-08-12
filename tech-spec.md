@@ -1,7 +1,7 @@
 # Technical Specification
 ## StrokeApp — MVP Architecture
 
-**Version:** 1.0
+**Version:** 1.1
 **Companion to:** `prd.md`
 
 ---
@@ -49,7 +49,22 @@ All three share one MongoDB database via the backend API. No client talks to the
 | Web hosting | Vercel | — | Free tier, auto-deploy from GitHub |
 | Video calls | External Zoom or Google Meet link (iframe/deep link) | — | No in-app video infra for MVP |
 
-**No ML/CV/audio libraries are included in this spec.** (MediaPipe, TensorFlow Lite, etc. are explicitly Phase 2 — see `prd.md` §5.)
+The MVP baseline does not require ML/CV/audio libraries. Roadmap Phase 2 dependencies are explicitly approved below and may be added when their corresponding features are implemented.
+
+### 2.1 Roadmap Phase 2 dependency authorization
+
+Roadmap Phase 2 is approved to start without an MVP or pilot entry gate. The following dependencies are approved for roadmap Phase 2 implementation; installing one of these does not require another document-level approval.
+
+| Capability | Approved dependency | Constraint |
+|---|---|---|
+| Camera capture | `expo-camera` | Use the Expo SDK 57-compatible release and request camera permission in the app flow. |
+| Face landmark processing | `@mediapipe/tasks-vision` or a maintained React Native-compatible wrapper | Process frames on-device; use the wrapper when the direct package is not supported by the native runtime. |
+| Audio capture | `expo-audio` | Use the Expo SDK 57-compatible release; do not start new work with `expo-av`. |
+| On-device audio inference | `@tensorflow/tfjs` + `@tensorflow/tfjs-react-native` + `expo-gl`, or a smaller compatible on-device runtime | Select and benchmark the runtime during Phase 2 implementation; raw audio remains local. |
+
+Phase 2 native face implementation uses `react-native-vision-camera-face-detector` with its required `react-native-vision-camera`, `react-native-nitro-modules`, `react-native-nitro-image`, and `react-native-worklets` peers. The wrapper provides on-device landmarks for static images captured through `expo-camera`; it is the maintained React Native-compatible alternative to the web-only MediaPipe Tasks Vision runtime.
+
+These approvals authorize dependency use, not a claim that every runtime combination is production-ready. Compatibility and performance are verified as part of the relevant roadmap Phase 2 feature work, not as a prerequisite to starting roadmap Phase 2.
 
 ---
 
@@ -155,7 +170,7 @@ StrokeApp-GEMASTIK/
   _id: ObjectId,
   patientId: ObjectId,         // ref: Patient, required
   date: Date,                   // required
-  exercise: String,             // enum: 'forearm_supination' | 'shoulder_abduction' | 'elbow_flexion'
+  exercise: String,             // enum: MVP exercises plus 'wrist_flexion' | 'finger_extension' | 'resistance_band_row' (Phase 2)
   peakRom: Number,              // degrees
   avgRom: Number,                // degrees
   repsCompleted: Number,         // 0-10
@@ -163,6 +178,7 @@ StrokeApp-GEMASTIK/
   notes: String,                  // optional patient free text
   gyroRawSampleCount: Number,    // count only — raw array NOT stored server-side in MVP (see §7 privacy note)
   syncedAt: Date,
+  reviewStatus: String,           // 'unreviewed' | 'good' | 'attention', Phase 2 therapist review
   createdAt: Date
 }
 ```
@@ -175,6 +191,22 @@ StrokeApp-GEMASTIK/
   patientId: ObjectId,          // ref: Patient, required
   weekNumber: Number,            // 1-8 relative to program start
   note: String,                   // required
+  templateKey: String,            // optional Phase 2 note template identifier
+  createdAt: Date
+}
+```
+
+### 4.5 `Assessment` (roadmap Phase 2)
+```javascript
+{
+  _id: ObjectId,
+  patientId: ObjectId,             // ref: Patient, required
+  date: Date,                       // required
+  type: String,                     // 'facial_asymmetry' | 'speech_clarity'
+  score: Number,                    // normalized 0-1 derived metric
+  risk: String,                     // 'low' | 'medium' | 'high' | 'unknown'
+  modelVersion: String,             // adapter/model version used on-device
+  consentedAt: Date,                // required for speech assessment
   createdAt: Date
 }
 ```
@@ -182,6 +214,7 @@ StrokeApp-GEMASTIK/
 **Indexes:**
 - `Session`: compound index on `{ patientId: 1, date: -1 }` for fast history queries
 - `Patient`, `Therapist`: unique index on `email`
+- `Assessment`: compound index on `{ patientId: 1, date: -1 }`
 
 ---
 
@@ -203,13 +236,16 @@ Base URL: `/api`
 | POST | `/patient/sessions` | `Session` fields (minus `_id`, `patientId`) | `{ session }` |
 | GET | `/patient/sessions?limit=8` | — | `{ sessions: [Session] }` |
 | PATCH | `/patient/sessions/:sessionId` | `{ notes }` | `{ session }` |
+| POST | `/patient/assessments` | `{ date?, type, score, risk, modelVersion, consentedAt? }` | `{ assessment }` |
+| GET | `/patient/assessments?limit=8` | — | `{ assessments: [Assessment] }` |
 
 ### 5.3 Therapist-facing (requires therapist JWT)
 | Method | Path | Body | Response |
 |---|---|---|---|
 | GET | `/therapist/patients` | — | `{ patients: [{ _id, name, lastSessionDate, trend }] }` |
-| GET | `/therapist/patients/:patientId` | — | `{ patient, sessions: [Session], notes: [TherapistNote] }` |
-| PATCH | `/therapist/patients/:patientId/notes` | `{ weekNumber, note }` | `{ note: TherapistNote }` |
+| GET | `/therapist/patients/:patientId` | — | `{ patient, sessions: [Session], notes: [TherapistNote], assessments: [Assessment] }` |
+| PATCH | `/therapist/patients/:patientId/notes` | `{ weekNumber, note, templateKey? }` | `{ note: TherapistNote }` |
+| PATCH | `/therapist/patients/:patientId/sessions/:sessionId/review` | `{ reviewStatus }` | `{ session }` |
 
 ### 5.4 Health check
 | Method | Path | Response |
@@ -225,7 +261,7 @@ Base URL: `/api`
 
 ---
 
-## 6. Core Algorithm: ROM Calculation (no ML)
+## 6. Core Algorithm: MVP ROM Calculation (no ML)
 
 Input: array of gyroscope Z-axis readings sampled at 10Hz during a session.
 
@@ -270,6 +306,8 @@ This is pure numerical integration — **no trained model, no external ML depend
 - Passwords are hashed with `bcryptjs` (min. 10 salt rounds) — never stored or logged in plaintext.
 - `.env` files (containing `MONGO_URI`, `JWT_SECRET`) are **never committed** — see `.gitignore` requirement in `rules.md`.
 - No production PII (real patient names/emails) is used in development or testing — use clearly-fake seed data.
+- Phase 2 camera and audio inputs are processed on-device. Raw frames and recordings are not uploaded or retained by default; only derived metrics may be synchronized.
+- Audio capture requires explicit informed consent before recording. Camera and microphone permissions must be requested with user-facing explanations.
 - This is explicitly **not** a HIPAA/GDPR-compliant system in MVP form. Encryption-at-rest, audit logging, and formal consent flows are Phase 3 concerns once clinical piloting requires them — noted here so the AI agent does not silently add compliance theater that isn't backed by an actual policy.
 
 ---
@@ -308,17 +346,17 @@ export const API_URL = __DEV__
 
 ---
 
-## 10. Explicit Non-Dependencies (do not install these for MVP)
+## 10. Dependency Boundaries
 
-To prevent an AI coding agent from "helpfully" adding scope:
-- No `@tensorflow/tfjs*` packages
-- No `@mediapipe/*` packages
-- No camera/audio recording libraries (`expo-camera`, `expo-av` recording features)
+The following remain outside the approved MVP and Phase 2 scope:
 - No push notification libraries (`expo-notifications`)
 - No payment/billing SDKs
-- No third-party auth providers (Firebase Auth, Auth0, Clerk) — plain JWT is sufficient for MVP
+- No third-party auth providers (Firebase Auth, Auth0, Clerk) — plain JWT remains sufficient
+- No raw camera or audio uploads to the server
 
-If a task seems to require one of the above, stop and flag it rather than installing — it likely belongs to a Phase 2/3 document, not this spec.
+Camera, audio, MediaPipe, and TensorFlow dependencies listed in §2.1 are approved for roadmap Phase 2. `expo-av` is not approved for new work because the current Expo SDK 57 stack provides `expo-audio` for recording and playback.
+
+A dependency outside §2 or §2.1 requires a technical-spec update before installation. This is dependency hygiene and does not create a roadmap Phase 2 start gate.
 
 ---
 

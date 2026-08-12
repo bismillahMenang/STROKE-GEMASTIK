@@ -499,7 +499,7 @@ feature/* branches = individual features
 **Why not in MVP:**
 1. **Gyroscope doesn't need ML.** Pure math (numerical integration) suffices.
 2. **Camera ML (facial asymmetry) adds 2–3 weeks** of model training + validation. Delays MVP.
-3. **Clinical validation without ML is faster.** You prove: "Gyroscope ROM = therapist goniometer" (simple correlation). Once validated, add ML features in Phase 2.
+3. **Clinical validation without ML is faster.** You prove: "Gyroscope ROM = therapist goniometer" (simple correlation). Phase 2 can begin immediately, while this evidence informs feature tuning and release validation.
 4. **GEMASTIK rubric doesn't require ML.** Innovation can be "novel combination of sensor + async architecture," not "novel ML model."
 
 **When ML enters (Phase 2):**
@@ -514,7 +514,7 @@ feature/* branches = individual features
   - Pre-trained options available (CMU SPHINX, Mozilla Common Voice)
   - Time: 1 week (integration) + 2 weeks (custom model if needed)
 
-**Recommendation:** Launch MVP (no ML), validate with 20 stroke survivors, THEN add camera/audio ML in Phase 2 based on clinical feedback.
+**Recommendation:** Keep the MVP baseline free of ML, start the approved Phase 2 camera/audio work without an entry gate, and use clinical feedback to tune and validate those features.
 
 ---
 

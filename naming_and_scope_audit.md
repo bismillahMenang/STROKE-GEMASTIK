@@ -81,7 +81,7 @@ Mari saya audit berdasarkan GEMASTIK prior winners' pattern.
 **Complexity:** LOW — pure signal processing, no ML  
 **Validation required:** ≥15 patients, 4 weeks pilot → accuracy ≥75%
 
-### Phase 2 (Weeks 5–16 development, happens AFTER MVP pilot validates)
+### Phase 2 (Weeks 5–16 development, authorized to start immediately)
 ```
 ✅ Camera: facial asymmetry detection (MediaPipe, on-device)
 ✅ Audio: speech clarity scoring (TFLite, on-device)
@@ -132,9 +132,9 @@ Phase 2: Multi-modal detection
 - Gyroscope + storage + basic dashboards = straightforward
 - **Risk:** underestimating polish, accessibility, edge cases → likely +1–2 weeks if not disciplined
 
-### Week 4–8: MVP pilot (mandatory)
+### Week 4–8: MVP pilot (validation track; can run in parallel)
 - ≥15 patients, ≥4 weeks real use
-- Cannot skip this — Phase 2 approval depends on clinical evidence
+- This validates the MVP and informs Phase 2 tuning; it is not a prerequisite for starting Phase 2
 - **Risk:** recruitment delays; allows 1–2 week slip
 
 ### Week 9–16: Phase 2 build (camera + audio ML integration)
