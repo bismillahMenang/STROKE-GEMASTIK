@@ -1,8 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const Patient = require('../models/Patient');
-const Therapist = require('../models/Therapist');
+const prisma = require('../lib/prisma');
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -21,24 +20,26 @@ router.post('/register-patient', async (req, res) => {
       return res.status(400).json({ error: true, message: 'Name, email, and password are required' });
     }
 
-    const existing = await Patient.findOne({ email });
+    const existing = await prisma.patient.findUnique({ where: { email } });
     if (existing) {
       return res.status(409).json({ error: true, message: 'Email already registered' });
     }
 
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
-    const patient = await Patient.create({
-      name,
-      email,
-      passwordHash,
-      phone,
+    const patient = await prisma.patient.create({
+      data: {
+        name,
+        email,
+        passwordHash,
+        phone,
+      },
     });
 
-    const token = signToken({ id: patient._id, role: 'patient' });
+    const token = signToken({ id: patient.id, role: 'patient' });
     res.status(201).json({
       token,
       patient: {
-        _id: patient._id,
+        _id: patient.id,
         name: patient.name,
         email: patient.email,
         phone: patient.phone,
@@ -60,12 +61,12 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: true, message: 'Email and password are required' });
     }
 
-    const patient = await Patient.findOne({ email });
+    const patient = await prisma.patient.findUnique({ where: { email } });
     if (!patient || !(await bcrypt.compare(password, patient.passwordHash))) {
       return res.status(401).json({ error: true, message: 'Email atau password salah' });
     }
 
-    const token = signToken({ id: patient._id, role: 'patient' });
+    const token = signToken({ id: patient.id, role: 'patient' });
     res.json({ token, role: 'patient' });
   } catch (err) {
     console.error('Login error:', err);
@@ -82,12 +83,12 @@ router.post('/login-therapist', async (req, res) => {
       return res.status(400).json({ error: true, message: 'Email and password are required' });
     }
 
-    const therapist = await Therapist.findOne({ email });
+    const therapist = await prisma.therapist.findUnique({ where: { email } });
     if (!therapist || !(await bcrypt.compare(password, therapist.passwordHash))) {
       return res.status(401).json({ error: true, message: 'Email atau password salah' });
     }
 
-    const token = signToken({ id: therapist._id, role: 'therapist' });
+    const token = signToken({ id: therapist.id, role: 'therapist' });
     res.json({ token, role: 'therapist' });
   } catch (err) {
     console.error('Therapist login error:', err);
