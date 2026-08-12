@@ -12,8 +12,8 @@ Aplikasi rehabilitasi pasca-stroke berbasis ponsel untuk pasien dan dashboard we
 |-------|-----------|
 | Mobile app | React Native + Expo SDK 57 |
 | Web dashboard | React + Vite 5 |
-| Backend | Node.js + Express + Mongoose |
-| Database | MongoDB Atlas / lokal |
+| Backend | Node.js + Express + Prisma |
+| Database | PostgreSQL (Supabase / lokal) |
 | Auth | JWT + bcryptjs |
 | Charts | react-native-chart-kit (mobile), recharts (web) |
 | Face detection | react-native-vision-camera + face-detector (Phase 2) |
@@ -51,7 +51,7 @@ STROKE-GEMASTIK/
 ## Prasyarat
 
 - Node.js 18+ (direkomendasikan LTS terbaru)
-- MongoDB Atlas atau instance MongoDB lokal
+- Akun Supabase (gratis) atau PostgreSQL lokal
 - Expo CLI / `npx expo`
 - Perangkat fisik atau emulator Android/iOS untuk uji mobile
 
@@ -59,51 +59,55 @@ STROKE-GEMASTIK/
 
 ## 1. Setup Backend
 
-### MongoDB lokal dengan Podman
+Backend sekarang menggunakan **PostgreSQL** melalui **Prisma ORM**. Database bisa di-host di **Supabase** (cloud) atau dijalankan secara lokal via Docker/Podman.
 
-Jika memakai MongoDB lokal melalui Podman:
+### Opsi A: Supabase (Rekomendasi)
 
-```powershell
-podman machine start stroke-vm
-podman start stroke-mongo
-```
-
-Jika container belum pernah dibuat:
-
-```powershell
-podman run -d --name stroke-mongo -p 27017:27017 `
-  -e MONGO_INITDB_ROOT_USERNAME=admin `
-  -e MONGO_INITDB_ROOT_PASSWORD=secret `
-  mongo:6
-```
-
-Gunakan URI berikut di `server/.env`:
-
-```env
-MONGO_URI=mongodb://admin:secret@localhost:27017/strokeapp?authSource=admin
-```
-
-```bash
-cd server
-cp .env.example .env
-# Edit .env dan isi MONGO_URI, JWT_SECRET, serta CORS_ORIGIN
-npm install
-npm run seed      # Buat data demo
-npm test          # Verifikasi model ke database
-node server.js    # Jalankan server di http://localhost:5000
-```
-
-Pada PowerShell, gunakan `Copy-Item .env.example .env` sebagai pengganti `cp`.
+1. Buat project di [supabase.com](https://supabase.com).
+2. Di Project Settings → Database, copy **URI** connection string.
+3. Paste ke `server/.env` sebagai `DATABASE_URL`.
 
 **Contoh `.env`:**
 
 ```env
 PORT=5000
-MONGO_URI=mongodb+srv://user:pass@cluster.mongodb.net/strokeapp
+DATABASE_URL=postgresql://postgres:[PASSWORD]@db.[PROJECT_REF].supabase.co:5432/postgres?sslmode=require
 JWT_SECRET=super-random-secret-min-32-char
 NODE_ENV=development
 CORS_ORIGIN=http://localhost:5173,http://localhost:19006
 ```
+
+### Opsi B: PostgreSQL Lokal dengan Docker
+
+Jika tidak ingin pakai Supabase:
+
+```powershell
+docker run -d --name stroke-postgres -p 5432:5432 `
+  -e POSTGRES_USER=admin `
+  -e POSTGRES_PASSWORD=secret `
+  -e POSTGRES_DB=strokeapp `
+  postgres:16
+```
+
+```env
+DATABASE_URL=postgresql://admin:secret@localhost:5432/strokeapp
+```
+
+### Jalankan Backend
+
+```bash
+cd server
+cp .env.example .env
+# Edit .env dan isi DATABASE_URL, JWT_SECRET, serta CORS_ORIGIN
+npm install
+npx prisma migrate dev   # Buat tabel di PostgreSQL
+npx prisma generate      # Generate Prisma Client
+npm run seed             # Buat data demo
+npm test                 # Verifikasi model ke database
+node server.js           # Jalankan server di http://localhost:5000
+```
+
+Pada PowerShell, gunakan `Copy-Item .env.example .env` sebagai pengganti `cp`.
 
 **Endpoint utama:**
 
