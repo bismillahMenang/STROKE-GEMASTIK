@@ -1,0 +1,18 @@
+name: rehabtrack-test
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: rehabtrack
+      POSTGRES_PASSWORD: rehabtrack_test
+      POSTGRES_DB: rehabtrack_test
+    ports:
+      - "55432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rehabtrack -d rehabtrack_test"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+    tmpfs:
+      - /var/lib/postgresql/data
