@@ -19,7 +19,7 @@ async function run() {
       name: 'Terapis Demo',
       email: 'terapis.demo@example.com',
       passwordHash,
-      clinic: 'Klinik Contoh PulihTrack',
+      clinic: 'Klinik Contoh RehabTrack',
     },
   });
 
@@ -47,9 +47,6 @@ async function run() {
   });
   await prisma.therapistNote.deleteMany({
     where: { therapistId: therapist.id },
-  });
-  await prisma.assessment.deleteMany({
-    where: { patientId: { in: patients.map((patient) => patient.id) } },
   });
 
   const exercises = [
@@ -87,27 +84,6 @@ async function run() {
       weekNumber: 4,
       note: index === 1 ? 'Pantau kenyamanan bahu pada sesi berikutnya.' : 'Lanjutkan latihan rutin sesuai kemampuan.',
     })),
-  });
-  await prisma.assessment.createMany({
-    data: patients.flatMap((patient, index) => [
-      {
-        patientId: patient.id,
-        date: new Date(Date.now() - 2 * 86400000),
-        type: 'facial_asymmetry',
-        score: 0.06 + index * 0.03,
-        risk: index === 2 ? 'medium' : 'low',
-        modelVersion: 'phase2-face-landmarks-0.1',
-      },
-      {
-        patientId: patient.id,
-        date: new Date(Date.now() - 86400000),
-        type: 'speech_clarity',
-        score: 0.72 - index * 0.08,
-        risk: index === 2 ? 'medium' : 'low',
-        modelVersion: 'phase2-audio-baseline-0.1',
-        consentedAt: new Date(Date.now() - 86400000),
-      },
-    ]),
   });
 
   await prisma.$disconnect();

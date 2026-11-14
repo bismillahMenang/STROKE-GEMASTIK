@@ -1,4 +1,8 @@
 const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
-console.log('JWT_SECRET:', process.env.JWT_SECRET);
-console.log('MONGO_URI:', process.env.MONGO_URI);
+
+// Never print secret values; only report whether required variables exist.
+const required = ['DATABASE_URL', 'JWT_SECRET'];
+for (const key of required) {
+  console.log(`${key}: ${process.env[key] ? 'set' : 'MISSING'}`);
+}

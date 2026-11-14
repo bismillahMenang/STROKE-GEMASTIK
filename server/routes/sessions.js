@@ -10,10 +10,14 @@ router.use(authMiddleware('patient'));
 // POST /patient/sessions
 router.post('/', async (req, res) => {
   try {
-    const { date, exercise, peakRom, avgRom, repsCompleted, consistency, notes, gyroRawSampleCount, syncedAt } = req.body;
+    const { date, exercise, peakRom, avgRom, repsCompleted, consistency, pain, avgSmoothness, ceilingHits, prescriptionSource, notes, gyroRawSampleCount, syncedAt } = req.body;
 
     if (!date || !exercise) {
       return res.status(400).json({ error: true, message: 'Date and exercise are required' });
+    }
+
+    if (pain && !['none', 'mild', 'stopped'].includes(pain)) {
+      return res.status(400).json({ error: true, message: 'Invalid pain level' });
     }
 
     const session = await prisma.session.create({
@@ -25,6 +29,10 @@ router.post('/', async (req, res) => {
         avgRom,
         repsCompleted,
         consistency,
+        pain,
+        avgSmoothness,
+        ceilingHits,
+        prescriptionSource,
         notes,
         gyroRawSampleCount,
         syncedAt: syncedAt ? new Date(syncedAt) : new Date(),

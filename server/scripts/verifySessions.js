@@ -57,7 +57,7 @@ async function run() {
   console.log('Descending order:', isDescending);
 
   // Update notes on most recent session
-  const updated = await request(`/patient/sessions/${sessions[0]._id}`, {
+  const updated = await request(`/patient/sessions/${sessions[0].id}`, {
     method: 'PATCH',
     headers,
     body: JSON.stringify({ notes: 'Updated note from verify script' }),

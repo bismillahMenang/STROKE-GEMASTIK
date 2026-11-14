@@ -54,7 +54,7 @@ router.get('/patients', async (req, res) => {
         take: 3,
       });
       return {
-        _id: patient.id,
+        id: patient.id,
         name: patient.name,
         lastSessionDate: sessions[0]?.date || null,
         trend: calculateTrend(sessions),
@@ -74,7 +74,7 @@ router.get('/patients/:patientId', async (req, res) => {
     const patient = await getAssignedPatient(req, req.params.patientId);
     if (!patient) return res.status(404).json({ error: true, message: 'Patient not found' });
 
-    const [sessions, notes, assessments] = await Promise.all([
+    const [sessions, notes, prescriptions, sessionCount, repSum] = await Promise.all([
       prisma.session.findMany({
         where: { patientId: patient.id },
         orderBy: { date: 'desc' },
@@ -84,14 +84,24 @@ router.get('/patients/:patientId', async (req, res) => {
         where: { therapistId: req.user.id, patientId: patient.id },
         orderBy: { createdAt: 'desc' },
       }),
-      prisma.assessment.findMany({
+      prisma.prescription.findMany({
+        where: { patientId: patient.id, isActive: true },
+      }),
+      prisma.session.count({ where: { patientId: patient.id } }),
+      prisma.session.aggregate({
         where: { patientId: patient.id },
-        orderBy: { date: 'desc' },
-        take: 8,
+        _sum: { repsCompleted: true },
       }),
     ]);
 
-    res.json({ patient, sessions, notes, assessments });
+    res.json({
+      patient,
+      sessions,
+      notes,
+      prescriptions,
+      totalSessions: sessionCount,
+      totalReps: repSum._sum.repsCompleted || 0,
+    });
   } catch (err) {
     console.error('Get patient detail error:', err);
     res.status(500).json({ error: true, message: 'Server error' });
@@ -121,6 +131,35 @@ router.patch('/patients/:patientId/sessions/:sessionId/review', async (req, res)
     res.json({ session });
   } catch (error) {
     console.error('Update session review error:', error);
+    res.status(500).json({ error: true, message: 'Server error' });
+  }
+});
+
+// PUT /therapist/patients/:patientId/prescription
+// Therapist sets (or replaces) the active plan for one exercise of a patient.
+router.put('/patients/:patientId/prescription', async (req, res) => {
+  try {
+    const patient = await getAssignedPatient(req, req.params.patientId);
+    if (!patient) return res.status(404).json({ error: true, message: 'Patient not found' });
+
+    const { exercise, targetRom, romCeiling, targetReps } = req.body;
+    const numbers = [targetRom, romCeiling, targetReps];
+    if (!exercise || numbers.some((value) => !Number.isFinite(value) || value <= 0)) {
+      return res.status(400).json({ error: true, message: 'Exercise and positive targetRom, romCeiling, targetReps are required' });
+    }
+    if (romCeiling < targetRom) {
+      return res.status(400).json({ error: true, message: 'romCeiling must be at least targetRom' });
+    }
+
+    const prescription = await prisma.prescription.upsert({
+      where: { patientId_exercise: { patientId: patient.id, exercise } },
+      update: { targetRom, romCeiling, targetReps, isActive: true },
+      create: { patientId: patient.id, exercise, targetRom, romCeiling, targetReps },
+    });
+
+    res.json({ prescription });
+  } catch (err) {
+    console.error('Set prescription error:', err);
     res.status(500).json({ error: true, message: 'Server error' });
   }
 });

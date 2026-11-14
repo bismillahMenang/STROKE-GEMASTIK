@@ -33,9 +33,9 @@ model Patient {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
-  sessions    Session[]
-  assessments Assessment[]
-  notes       TherapistNote[]
+  sessions Session[]
+  notes    TherapistNote[]
+  prescriptions Prescription[]
 }
 
 model Session {
@@ -47,6 +47,10 @@ model Session {
   avgRom             Float?
   repsCompleted      Int?
   consistency        Consistency?
+  pain               PainLevel?
+  avgSmoothness      Float?
+  ceilingHits        Int?
+  prescriptionSource String?
   notes              String?
   gyroRawSampleCount Int?
   syncedAt           DateTime?
@@ -59,21 +63,20 @@ model Session {
   @@index([patientId, date])
 }
 
-model Assessment {
-  id           String          @id @default(uuid())
-  patientId    String
-  date         DateTime
-  type         AssessmentType
-  score        Float
-  risk         RiskLevel       @default(unknown)
-  modelVersion String
-  consentedAt  DateTime?
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
+model Prescription {
+  id          String   @id @default(uuid())
+  patientId   String
+  exercise    Exercise
+  targetRom   Float
+  romCeiling  Float
+  targetReps  Int
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
 
-  @@index([patientId, date])
+  @@unique([patientId, exercise])
 }
 
 model TherapistNote {
@@ -110,20 +113,14 @@ enum Consistency {
   high
 }
 
+enum PainLevel {
+  none
+  mild
+  stopped
+}
+
 enum ReviewStatus {
   unreviewed
   good
   attention
-}
-
-enum AssessmentType {
-  facial_asymmetry
-  speech_clarity
-}
-
-enum RiskLevel {
-  low
-  medium
-  high
-  unknown
 }

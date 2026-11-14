@@ -2,6 +2,11 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const prisma = require('../lib/prisma');
+const {
+  normalizeEmail,
+  isValidEmail,
+  isStrongEnoughPassword,
+} = require('../utils/validation');
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -14,13 +19,26 @@ function signToken(payload) {
 // POST /auth/register-patient
 router.post('/register-patient', async (req, res) => {
   try {
-    const { name, email, password, phone } = req.body;
+    const name = typeof req.body.name === 'string' ? req.body.name.trim() : '';
+    const email = normalizeEmail(req.body.email);
+    const password = req.body.password;
+    const phone = typeof req.body.phone === 'string' ? req.body.phone.trim() : undefined;
 
     if (!name || !email || !password) {
       return res.status(400).json({ error: true, message: 'Name, email, and password are required' });
     }
 
-    const existing = await prisma.patient.findUnique({ where: { email } });
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ error: true, message: 'Format email tidak valid' });
+    }
+
+    if (!isStrongEnoughPassword(password)) {
+      return res.status(400).json({ error: true, message: 'Password minimal 8 karakter' });
+    }
+
+    const existing = await prisma.patient.findFirst({
+      where: { email: { equals: email, mode: 'insensitive' } },
+    });
     if (existing) {
       return res.status(409).json({ error: true, message: 'Email already registered' });
     }
@@ -39,7 +57,7 @@ router.post('/register-patient', async (req, res) => {
     res.status(201).json({
       token,
       patient: {
-        _id: patient.id,
+        id: patient.id,
         name: patient.name,
         email: patient.email,
         phone: patient.phone,
@@ -55,13 +73,16 @@ router.post('/register-patient', async (req, res) => {
 // POST /auth/login
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const email = normalizeEmail(req.body.email);
+    const password = req.body.password;
 
     if (!email || !password) {
       return res.status(400).json({ error: true, message: 'Email and password are required' });
     }
 
-    const patient = await prisma.patient.findUnique({ where: { email } });
+    const patient = await prisma.patient.findFirst({
+      where: { email: { equals: email, mode: 'insensitive' } },
+    });
     if (!patient || !(await bcrypt.compare(password, patient.passwordHash))) {
       return res.status(401).json({ error: true, message: 'Email atau password salah' });
     }
@@ -77,13 +98,16 @@ router.post('/login', async (req, res) => {
 // POST /auth/login-therapist
 router.post('/login-therapist', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const email = normalizeEmail(req.body.email);
+    const password = req.body.password;
 
     if (!email || !password) {
       return res.status(400).json({ error: true, message: 'Email and password are required' });
     }
 
-    const therapist = await prisma.therapist.findUnique({ where: { email } });
+    const therapist = await prisma.therapist.findFirst({
+      where: { email: { equals: email, mode: 'insensitive' } },
+    });
     if (!therapist || !(await bcrypt.compare(password, therapist.passwordHash))) {
       return res.status(401).json({ error: true, message: 'Email atau password salah' });
     }
