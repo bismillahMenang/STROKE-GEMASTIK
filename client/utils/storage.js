@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const SESSIONS_KEY = '@pulihtrack/sessions';
+const SESSIONS_KEY = '@rehabtrack/sessions';
 
 export async function saveSession(session) {
   const sessions = await getSessions();

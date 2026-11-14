@@ -1,28 +1,50 @@
 import { useEffect, useRef, useState } from 'react';
+import { Alert, BackHandler, Pressable, SafeAreaView, Text, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Alert, BackHandler, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import GyroSensor from '../components/GyroSensor';
 import SessionSummary from '../components/SessionSummary';
-import { EXERCISES, MAX_REPS } from '../utils/constants';
-import { calculateROM } from '../utils/gyroProcessing';
+import PrimaryButton from '../components/PrimaryButton';
+import styles from '../components/exerciseSessionStyles';
+import {
+  EXERCISES,
+  REP_ENTER_RATIO,
+  REP_EXIT_RATIO,
+  SENSOR_INTERVAL_MS,
+  SMOOTHNESS_JERK_SCALE,
+} from '../utils/constants';
+import { averageSmoothness, calculateROM, computeRepMetrics } from '../utils/gyroProcessing';
+import { usePrescription } from '../utils/prescription';
+import { playCeilingWarning, playTargetReached, stopCeilingWarning } from '../utils/soundManager';
 import { saveSession, updateSession } from '../utils/storage';
 import { TOKEN_KEY, uploadSession } from '../api/client';
+import { useTheme } from '../theme/ThemeContext';
+
+const SAMPLING_INTERVAL_SEC = SENSOR_INTERVAL_MS / 1000;
 
 export default function ExerciseSession({ navigation, route }) {
   const exercise = EXERCISES[route.params?.exercise] || EXERCISES.forearm_supination;
+  const { colors } = useTheme();
+  const { rx: prescription, status: prescriptionStatus } = usePrescription(exercise);
   const [state, setState] = useState('instructions');
   const [countdown, setCountdown] = useState(10);
   const [angle, setAngle] = useState(0);
   const [reps, setReps] = useState(0);
   const [result, setResult] = useState(null);
   const [note, setNote] = useState('');
+  const [pain, setPain] = useState(null);
+  const [ceilingWarning, setCeilingWarning] = useState(false);
   const [sensorError, setSensorError] = useState('');
   const [saveMessage, setSaveMessage] = useState('');
   const repsRef = useRef(0);
   const readingsRef = useRef([]);
+  const angleTraceRef = useRef([]);
+  const repEndIndicesRef = useRef([]);
   const angleRef = useRef(0);
   const peakRef = useRef(0);
+  const ceilingHitsRef = useRef(0);
+  const ceilingActiveRef = useRef(false);
   const repReadyRef = useRef(false);
+  const targetReachedRef = useRef(false);
 
   useEffect(() => {
     setState('instructions');
@@ -32,11 +54,18 @@ export default function ExerciseSession({ navigation, route }) {
     repsRef.current = 0;
     setResult(null);
     setNote('');
+    setPain(null);
+    setCeilingWarning(false);
     setSaveMessage('');
     readingsRef.current = [];
+    angleTraceRef.current = [];
+    repEndIndicesRef.current = [];
     angleRef.current = 0;
     peakRef.current = 0;
+    ceilingHitsRef.current = 0;
+    ceilingActiveRef.current = false;
     repReadyRef.current = false;
+    targetReachedRef.current = false;
   }, [exercise.key]);
 
   useEffect(() => {
@@ -80,31 +109,69 @@ export default function ExerciseSession({ navigation, route }) {
 
   function handleReading({ z }) {
     readingsRef.current.push(z);
-    angleRef.current += z * 0.1 * (180 / Math.PI);
+    angleRef.current += z * SAMPLING_INTERVAL_SEC * (180 / Math.PI);
     const currentAngle = Math.abs(angleRef.current);
+    angleTraceRef.current.push(angleRef.current);
     setAngle(Math.round(currentAngle));
 
     if (currentAngle > peakRef.current) peakRef.current = currentAngle;
-    if (currentAngle >= exercise.targetRom * 0.7) repReadyRef.current = true;
-    if (repReadyRef.current && currentAngle <= exercise.targetRom * 0.25) {
+
+    // Zone sound: gentle "ding" exactly once when the target ROM is reached
+    // (PulihGo soundManager — a positive cue, never a score).
+    if (!targetReachedRef.current && currentAngle >= prescription.targetRomDeg) {
+      targetReachedRef.current = true;
+      playTargetReached();
+    }
+
+    // Rep thresholds are derived from the prescription target (PulihGo
+    // repDetector.ts): enter at 45%, count once returned below 18%.
+    const enterDeg = Math.max(prescription.targetRomDeg * REP_ENTER_RATIO, 5);
+    const exitDeg = Math.max(prescription.targetRomDeg * REP_EXIT_RATIO, 2);
+    if (currentAngle >= enterDeg) repReadyRef.current = true;
+    if (repReadyRef.current && currentAngle <= exitDeg) {
       repReadyRef.current = false;
+      repEndIndicesRef.current.push(angleTraceRef.current.length);
       setReps((current) => {
-        const next = Math.min(MAX_REPS, current + 1);
+        const next = Math.min(prescription.targetReps, current + 1);
         repsRef.current = next;
-        if (next >= MAX_REPS) setTimeout(stopRecording, 0);
+        if (next >= prescription.targetReps) setTimeout(stopRecording, 0);
         return next;
       });
+    }
+
+    // Safety: warn (never reward) when ROM exceeds the ceiling. The warning
+    // tone loops while over, and stops once back in the safe zone.
+    const pastCeiling = currentAngle > prescription.romCeilingDeg;
+    if (pastCeiling && !ceilingActiveRef.current) {
+      ceilingActiveRef.current = true;
+      ceilingHitsRef.current += 1;
+      setCeilingWarning(true);
+      playCeilingWarning();
+    } else if (!pastCeiling && ceilingActiveRef.current) {
+      ceilingActiveRef.current = false;
+      setCeilingWarning(false);
+      stopCeilingWarning();
     }
   }
 
   function stopRecording() {
     if (state !== 'recording') return;
-    const rom = calculateROM(readingsRef.current);
-    setResult({ ...rom, repsCompleted: repsRef.current });
+    stopCeilingWarning();
+    const rom = calculateROM(readingsRef.current, SAMPLING_INTERVAL_SEC);
+    const repMetrics = computeRepMetrics(angleTraceRef.current, repEndIndicesRef.current, SAMPLING_INTERVAL_SEC, SMOOTHNESS_JERK_SCALE);
+    const smoothness = averageSmoothness(repMetrics, angleTraceRef.current, SMOOTHNESS_JERK_SCALE);
+    setResult({
+      ...rom,
+      repsCompleted: repsRef.current,
+      avgSmoothness: smoothness,
+      ceilingHits: ceilingHitsRef.current,
+      perReps: repMetrics,
+    });
     setState('summary');
   }
 
   async function handleSave() {
+    if (!pain) return;
     try {
       const storedSession = await saveSession({
         date: new Date().toISOString(),
@@ -113,14 +180,19 @@ export default function ExerciseSession({ navigation, route }) {
         avgRom: result.avgRom,
         repsCompleted: result.repsCompleted,
         consistency: result.consistency,
+        pain,
+        avgSmoothness: result.avgSmoothness,
+        ceilingHits: result.ceilingHits,
+        prescriptionSource: prescription.source,
         notes: note.trim(),
         gyroRawSampleCount: readingsRef.current.length,
+        perReps: result.perReps,
       });
       const token = await AsyncStorage.getItem(TOKEN_KEY);
       if (token) {
         try {
           const uploaded = await uploadSession(storedSession, token);
-          await updateSession(storedSession.id, { pending: false, serverId: uploaded._id, syncedAt: new Date().toISOString() });
+          await updateSession(storedSession.id, { pending: false, serverId: uploaded.id, syncedAt: new Date().toISOString() });
           setSaveMessage('Tersimpan');
         } catch (syncError) {
           if (syncError.response?.status === 401) console.error('Session expired during upload:', syncError);
@@ -140,34 +212,68 @@ export default function ExerciseSession({ navigation, route }) {
   function redo() {
     setResult(null);
     setNote('');
+    setPain(null);
     setState('instructions');
     readingsRef.current = [];
+    angleTraceRef.current = [];
+    repEndIndicesRef.current = [];
     setReps(0);
     repsRef.current = 0;
+    ceilingHitsRef.current = 0;
+    setCeilingWarning(false);
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.bg }]}>
+      {/* Exercise name header bar */}
+      <View style={styles.headerBar}>
+        <View style={[styles.headerDot, { backgroundColor: colors.accent }]} />
+        <Text style={[styles.exerciseName, { color: colors.text }]} numberOfLines={1}>
+          {exercise.name}
+        </Text>
+      </View>
+
       <View style={styles.container}>
-        <Text style={styles.exerciseName}>{exercise.name}</Text>
-        {state === 'instructions' && <Instructions exercise={exercise} onStart={startCalibration} />}
-        {state === 'calibration' && <Calibration countdown={countdown} onCancel={() => navigation.navigate('Exercises')} />}
+        {state === 'instructions' && (
+          <Instructions colors={colors} prescription={prescription} status={prescriptionStatus} exercise={exercise} onStart={startCalibration} />
+        )}
+        {state === 'calibration' && <Calibration colors={colors} countdown={countdown} onCancel={() => navigation.navigate('Exercises')} />}
         {state === 'recording' && (
-          <Recording angle={angle} exercise={exercise} reps={reps} onStop={stopRecording} />
+          <Recording
+            colors={colors}
+            angle={angle}
+            ceilingWarning={ceilingWarning}
+            exercise={exercise}
+            prescription={prescription}
+            reps={reps}
+            onStop={stopRecording}
+          />
         )}
         {state === 'summary' && result && (
-          <SessionSummary result={result} note={note} onNoteChange={setNote} />
+          <SessionSummary
+            colors={colors}
+            pain={pain}
+            onPainChange={setPain}
+            result={result}
+            targetReps={prescription.targetReps}
+            note={note}
+            onNoteChange={setNote}
+          />
         )}
-        {sensorError ? <Text style={styles.error}>{sensorError}</Text> : null}
-        {saveMessage ? <Text style={styles.saved}>{saveMessage}</Text> : null}
+        {sensorError ? <Text style={[styles.error, { color: colors.danger }]}>{sensorError}</Text> : null}
+        {saveMessage ? (
+          <View style={styles.savedBanner}>
+            <Text style={styles.savedText}>✓ {saveMessage}</Text>
+          </View>
+        ) : null}
         {state === 'recording' && (
           <GyroSensor active onError={() => setSensorError('Sensor gerak tidak tersedia di perangkat ini.')} onReading={handleReading} />
         )}
-        {state === 'summary' && (
+        {state === 'summary' && result && (
           <View style={styles.actions}>
-            <PrimaryButton label="Simpan" onPress={handleSave} />
+            <PrimaryButton colors={colors} disabled={!pain} label="Simpan Sesi" onPress={handleSave} />
             <Pressable accessibilityRole="button" onPress={redo} style={styles.secondaryButton}>
-              <Text style={styles.secondaryLabel}>Ulangi</Text>
+              <Text style={[styles.secondaryLabel, { color: colors.warn }]}>🔄 Ulangi latihan</Text>
             </Pressable>
           </View>
         )}
@@ -176,41 +282,109 @@ export default function ExerciseSession({ navigation, route }) {
   );
 }
 
-function Instructions({ exercise, onStart }) {
-  return <View><Text style={styles.helper}>{exercise.instruction}</Text><Text style={styles.target}>Target ROM: {exercise.targetRom}°</Text><PrimaryButton label="Mulai" onPress={onStart} /></View>;
+function Instructions({ exercise, prescription, status, colors, onStart }) {
+  const targetLabel = prescription.source === 'default' ? 'Default' : 'Dari terapis';
+  return (
+    <View style={styles.instructionsWrap}>
+      {/* Instruction card */}
+      <View style={styles.instructionCard}>
+        <Text style={styles.instructionCardLabel}>📋 CARA LATIHAN</Text>
+        <Text style={[styles.helper, { color: colors.body }]}>{exercise.instruction}</Text>
+      </View>
+
+      {/* Prescription info */}
+      <View style={styles.rxRow}>
+        <View style={styles.rxItem}>
+          <Text style={styles.rxIcon}>🎯</Text>
+          <Text style={[styles.rxValue, { color: colors.accentDark }]}>{prescription.targetRomDeg}°</Text>
+          <Text style={styles.rxLabel}>Target ROM{status === 'loading' ? ' (memuat...)' : ` (${targetLabel})`}</Text>
+        </View>
+        <View style={styles.rxDivider} />
+        <View style={styles.rxItem}>
+          <Text style={styles.rxIcon}>🛡️</Text>
+          <Text style={[styles.rxValue, { color: '#A32D2D' }]}>{prescription.romCeilingDeg}°</Text>
+          <Text style={styles.rxLabel}>Batas aman</Text>
+        </View>
+        <View style={styles.rxDivider} />
+        <View style={styles.rxItem}>
+          <Text style={styles.rxIcon}>🔄</Text>
+          <Text style={[styles.rxValue, { color: colors.accentDark }]}>{prescription.targetReps}</Text>
+          <Text style={styles.rxLabel}>Target rep</Text>
+        </View>
+      </View>
+
+      <View style={styles.safetyNote}>
+        <Text style={styles.safetyNoteText}>⚠️ Hentikan segera jika terasa sakit atau tidak nyaman.</Text>
+      </View>
+
+      <PrimaryButton colors={colors} label="Mulai Kalibrasi" onPress={onStart} />
+    </View>
+  );
 }
 
-function Calibration({ countdown, onCancel }) {
-  return <View style={styles.center}><Text style={styles.helper}>Tahan ponsel diam selama kalibrasi.</Text><Text style={styles.countdown}>{countdown}</Text><Pressable accessibilityRole="button" onPress={onCancel}><Text style={styles.cancel}>Batal</Text></Pressable></View>;
+function Calibration({ colors, countdown, onCancel }) {
+  return (
+    <View style={styles.center}>
+      {/* Countdown ring */}
+      <View style={[styles.countdownRing, { borderColor: colors.accent }]}>
+        <Text style={[styles.countdown, { color: colors.accentDark }]}>{countdown}</Text>
+        <Text style={[styles.countdownSub, { color: colors.body }]}>detik</Text>
+      </View>
+      <Text style={[styles.helper, { color: colors.body, textAlign: 'center', marginTop: 24 }]}>
+        Tahan ponsel dalam posisi diam selama kalibrasi.
+      </Text>
+      <Pressable accessibilityRole="button" onPress={onCancel} style={styles.cancelBtn}>
+        <Text style={[styles.cancel, { color: colors.body }]}>Batal</Text>
+      </Pressable>
+    </View>
+  );
 }
 
-function Recording({ angle, exercise, reps, onStop }) {
-  const progress = Math.min(angle / exercise.targetRom, 1);
-  return <View style={styles.center}><View style={[styles.gauge, { borderColor: progress >= 0.9 ? '#D85A30' : '#0F9E75' }]}><Text style={styles.angle}>{angle}°</Text><Text style={styles.gaugeLabel}>dari {exercise.targetRom}°</Text></View><Text style={styles.rep}>{reps} / {MAX_REPS}</Text><Text style={styles.helper}>Gerakkan perlahan dan tetap nyaman.</Text><PrimaryButton label="Selesai" onPress={onStop} /></View>;
-}
+function Recording({ colors, angle, ceilingWarning, exercise, prescription, reps, onStop }) {
+  const progress = Math.min(angle / prescription.targetRomDeg, 1);
+  const isNearTarget = progress >= 0.8;
+  const isOverCeiling = ceilingWarning;
+  const gaugeColor = isOverCeiling ? '#A32D2D' : isNearTarget ? '#D85A30' : colors.accent;
 
-function PrimaryButton({ label, onPress }) {
-  return <Pressable accessibilityRole="button" onPress={onPress} style={styles.primaryButton}><Text style={styles.primaryLabel}>{label}</Text></Pressable>;
-}
+  return (
+    <View style={styles.center}>
+      {/* Gauge */}
+      <View style={[styles.gauge, { borderColor: gaugeColor, shadowColor: gaugeColor }]}>
+        <Text style={[styles.angle, { color: colors.text }]}>{angle}</Text>
+        <Text style={styles.angleDeg}>°</Text>
+        <Text style={[styles.gaugeLabel, { color: colors.body }]}>dari {prescription.targetRomDeg}°</Text>
 
-const styles = StyleSheet.create({
-  safeArea: { backgroundColor: '#F7F6F2', flex: 1 },
-  container: { flex: 1, padding: 20 },
-  exerciseName: { color: '#2C2C2A', fontSize: 24, fontWeight: '600', marginBottom: 18 },
-  helper: { color: '#5F5E5A', fontSize: 17, lineHeight: 27 },
-  target: { color: '#085041', fontSize: 17, fontWeight: '600', marginTop: 18 },
-  center: { alignItems: 'center', flex: 1, justifyContent: 'center' },
-  countdown: { color: '#085041', fontSize: 64, fontWeight: '700', marginVertical: 24 },
-  cancel: { color: '#5F5E5A', fontSize: 16, padding: 12 },
-  gauge: { alignItems: 'center', borderRadius: 130, borderWidth: 16, height: 230, justifyContent: 'center', width: 230 },
-  angle: { color: '#2C2C2A', fontSize: 40, fontWeight: '700' },
-  gaugeLabel: { color: '#5F5E5A', fontSize: 14, marginTop: 4 },
-  rep: { color: '#2C2C2A', fontSize: 24, fontWeight: '600', marginVertical: 20 },
-  primaryButton: { alignItems: 'center', backgroundColor: '#0F9E75', borderRadius: 8, justifyContent: 'center', minHeight: 50, paddingHorizontal: 20, marginTop: 28, width: '100%' },
-  primaryLabel: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
-  actions: { marginTop: 'auto' },
-  secondaryButton: { alignItems: 'center', minHeight: 48, justifyContent: 'center', marginTop: 8 },
-  secondaryLabel: { color: '#D85A30', fontSize: 16, fontWeight: '600' },
-  error: { color: '#A32D2D', fontSize: 15, lineHeight: 22, marginTop: 16 },
-  saved: { color: '#0F9E75', fontSize: 16, fontWeight: '600', marginTop: 16, textAlign: 'center' },
-});
+        {/* Progress indicator bar inside gauge */}
+        <View style={styles.progressTrack}>
+          <View
+            style={[
+              styles.progressFill,
+              {
+                width: `${Math.min(progress * 100, 100)}%`,
+                backgroundColor: gaugeColor,
+              },
+            ]}
+          />
+        </View>
+      </View>
+
+      {/* Rep counter */}
+      <View style={styles.repRow}>
+        <Text style={[styles.repNum, { color: colors.text }]}>{reps}</Text>
+        <Text style={[styles.repSlash, { color: colors.body }]}> / {prescription.targetReps}</Text>
+        <Text style={[styles.repLabel, { color: colors.body }]}> rep</Text>
+      </View>
+
+      {/* Ceiling warning */}
+      {isOverCeiling ? (
+        <View style={styles.ceilingBanner}>
+          <Text style={styles.ceilingBannerText}>⚠️ Melebihi batas aman — kembalikan perlahan</Text>
+        </View>
+      ) : (
+        <Text style={[styles.helper, { color: colors.body, textAlign: 'center' }]}>Gerakkan perlahan dan tetap nyaman.</Text>
+      )}
+
+      <PrimaryButton colors={colors} label="Selesai" onPress={onStop} />
+    </View>
+  );
+}

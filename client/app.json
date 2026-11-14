@@ -1,22 +1,18 @@
 {
   "expo": {
-    "name": "client",
-    "slug": "client",
+    "name": "RehabTrack",
+    "slug": "rehabtrack",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSMotionUsageDescription": "RehabTrack menggunakan giroskop untuk mengukur rotasi lengan Anda saat latihan."
+      }
     },
     "android": {
-      "permissions": [
-        "CAMERA",
-        "RECORD_AUDIO",
-        "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO",
-        "android.permission.MODIFY_AUDIO_SETTINGS"
-      ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -29,23 +25,7 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      [
-        "expo-camera",
-        {
-          "cameraPermission": "PulihTrack menggunakan kamera untuk pemeriksaan simetri wajah.",
-          "microphonePermission": "PulihTrack menggunakan mikrofon untuk pemeriksaan kejelasan bicara.",
-          "recordAudioAndroid": true
-        }
-      ],
-      [
-        "expo-audio",
-        {
-          "microphonePermission": "PulihTrack menggunakan mikrofon untuk pemeriksaan kejelasan bicara.",
-          "recordAudioAndroid": true,
-          "enableBackgroundRecording": false,
-          "enableBackgroundPlayback": false
-        }
-      ]
+      "expo-audio"
     ]
   }
 }

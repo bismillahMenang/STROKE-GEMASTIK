@@ -2,7 +2,7 @@ export const DEFAULT_LANGUAGE = 'id';
 
 const strings = {
   id: {
-    appName: 'PulihTrack',
+    appName: 'RehabTrack',
     login: 'Masuk',
     register: 'Daftar',
     chooseExercise: 'Pilih latihan',
@@ -13,7 +13,7 @@ const strings = {
     therapist: 'Hubungi terapis',
   },
   en: {
-    appName: 'PulihTrack',
+    appName: 'RehabTrack',
     login: 'Sign in',
     register: 'Register',
     chooseExercise: 'Choose an exercise',

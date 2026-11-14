@@ -1,12 +1,15 @@
 import axios from 'axios';
 import { API_URL } from '../utils/constants';
 import { getSessions, updateSession } from '../utils/storage';
-import { getAssessments, updateAssessment } from '../utils/assessmentStorage';
 
-const TOKEN_KEY = '@pulihtrack/token';
-const PATIENT_KEY = '@pulihtrack/patient';
+const TOKEN_KEY = '@rehabtrack/token';
+const PATIENT_KEY = '@rehabtrack/patient';
 
 export const apiClient = axios.create({ baseURL: API_URL, timeout: 10000 });
+
+if (!API_URL) {
+  console.warn('EXPO_PUBLIC_API_URL belum diatur. Permintaan API akan gagal.');
+}
 
 export async function registerPatient(payload) {
   const response = await apiClient.post('/auth/register-patient', payload);
@@ -32,10 +35,35 @@ export async function uploadSession(session, token) {
     avgRom: session.avgRom,
     repsCompleted: session.repsCompleted,
     consistency: session.consistency,
+    pain: session.pain,
+    avgSmoothness: session.avgSmoothness,
+    ceilingHits: session.ceilingHits,
+    prescriptionSource: session.prescriptionSource,
     notes: session.notes,
     gyroRawSampleCount: session.gyroRawSampleCount,
   }, { headers: { Authorization: `Bearer ${token}` } });
   return response.data.session;
+}
+
+// Best-effort read: returns the active prescription for one exercise, or null
+// on ANY failure (offline, 404, timeout). Never throws.
+export async function fetchPrescription(exerciseKey, token) {
+  try {
+    const response = await apiClient.get(`/patient/prescription?exercise=${encodeURIComponent(exerciseKey)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const rx = response.data?.prescription;
+    if (!rx) return null;
+    return {
+      targetRomDeg: Number(rx.targetRom),
+      romCeilingDeg: Number(rx.romCeiling),
+      targetReps: Number(rx.targetReps),
+    };
+  } catch (error) {
+    if (error.response?.status === 404) return null;
+    console.warn('fetchPrescription failed:', error.message);
+    return null;
+  }
 }
 
 export async function fetchSessions(token) {
@@ -43,29 +71,9 @@ export async function fetchSessions(token) {
   return response.data.sessions;
 }
 
-export async function uploadAssessment(assessment, token) {
-  const response = await apiClient.post('/patient/assessments', {
-    date: assessment.date,
-    type: assessment.type,
-    score: assessment.score,
-    risk: assessment.risk,
-    modelVersion: assessment.modelVersion,
-    consentedAt: assessment.consentedAt,
-  }, { headers: { Authorization: `Bearer ${token}` } });
-  return response.data.assessment;
-}
-
-export async function syncPendingAssessments(token) {
-  const assessments = await getAssessments();
-  for (const assessment of assessments.filter((item) => item.pending)) {
-    try {
-      const uploaded = await uploadAssessment(assessment, token);
-      await updateAssessment(assessment.id, { pending: false, serverId: uploaded._id });
-    } catch (error) {
-      if (error.response?.status === 401) throw error;
-      console.error(`Failed to sync assessment ${assessment.id}:`, error.message);
-    }
-  }
+export async function fetchNotes(token) {
+  const response = await apiClient.get('/patient/notes?limit=8', { headers: { Authorization: `Bearer ${token}` } });
+  return response.data.notes;
 }
 
 export async function syncPendingSessions(token) {
@@ -76,7 +84,7 @@ export async function syncPendingSessions(token) {
   for (const session of pending) {
     try {
       const uploaded = await uploadSession(session, token);
-      await updateSession(session.id, { pending: false, serverId: uploaded._id, syncedAt: new Date().toISOString() });
+      await updateSession(session.id, { pending: false, serverId: uploaded.id, syncedAt: new Date().toISOString() });
       syncedCount += 1;
     } catch (error) {
       if (error.response?.status === 401) throw error;
