@@ -48,6 +48,12 @@ coverage/
 *.tmp
 *.temp
 
+# Local dev server logs
+.dev.err
+.dev.log
+
+# Local reference repositories (not part of the product)
+data/reference/
+
 # Tooling / generated
 .opencode/
-graphify-out/
