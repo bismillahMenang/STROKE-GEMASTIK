@@ -1,4 +1,0 @@
-export default function AssessmentSummary({ assessments }) {
-  if (!assessments?.length) return null;
-  return <section className="assessment-summary"><div className="section-heading"><div><h2>Sinyal tambahan</h2><p className="muted">Hasil on-device untuk membantu review, bukan diagnosis.</p></div></div><div className="assessment-grid">{assessments.slice(0, 4).map((assessment) => <article className="assessment-card" key={assessment._id}><strong>{assessment.type === 'facial_asymmetry' ? 'Simetri wajah' : 'Kejelasan bicara'}</strong><span>{Math.round(assessment.score * 100)}%</span><small>{assessment.risk === 'low' ? 'Risiko rendah' : assessment.risk === 'medium' ? 'Risiko sedang' : assessment.risk === 'high' ? 'Risiko tinggi' : 'Belum diklasifikasikan'} · {new Date(assessment.date).toLocaleDateString('id-ID')}</small></article>)}</div></section>;
-}

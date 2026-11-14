@@ -5,7 +5,7 @@ import PatientList from './pages/PatientList';
 import './App.css';
 
 function ProtectedRoute({ children }) {
-  return localStorage.getItem('pulihtrack_therapist_token') ? children : <Navigate replace to="/login" />;
+  return localStorage.getItem('rehabtrack_therapist_token') ? children : <Navigate replace to="/login" />;
 }
 
 export default function App() {
