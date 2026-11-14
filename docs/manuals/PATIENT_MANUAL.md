@@ -1,4 +1,4 @@
-# Panduan Pasien PulihTrack
+# Panduan Pasien RehabTrack
 
 ## Masuk dan memilih latihan
 
@@ -17,4 +17,4 @@
 
 Sesi tetap tersimpan di ponsel. Pesan **Tersimpan, akan disinkron nanti** berarti data akan dikirim ketika koneksi kembali tersedia. Jangan menghapus aplikasi sebelum sinkronisasi selesai.
 
-PulihTrack adalah alat monitoring dan edukasi, bukan alat diagnosis. Hubungi terapis jika muncul nyeri atau keluhan baru.
+RehabTrack adalah alat monitoring dan edukasi, bukan alat diagnosis. Hubungi terapis jika muncul nyeri atau keluhan baru.

@@ -1,7 +1,7 @@
 # Design Brief
 ## StrokeApp — Visual & UX System
 
-**Companion to:** `prd.md`, `app-flow.md`
+**Companion to:** `../product/prd.md`, `app-flow.md`
 
 ---
 
@@ -19,7 +19,7 @@ Given the target users (persona "Budi" — post-stroke, possibly one-handed use,
 
 ## 2. Color Palette
 
-### Patient app (warm, encouraging, calm — inspired by PulihGo's teal/orange precedent which the target audience may already recognize from GEMASTIK context)
+### Patient app (warm, encouraging, calm — dirancang untuk nuansa hangat, menyemangati, dan tenang)
 
 | Role | Color | Hex | Usage |
 |---|---|---|---|
@@ -171,6 +171,6 @@ Given the target users (persona "Budi" — post-stroke, possibly one-handed use,
 ---
 
 ## 10. Related documents
-- `prd.md` — feature set these designs must support
+- `../product/prd.md` — feature set these designs must support
 - `app-flow.md` — screens and states this brief applies visual treatment to
 - `tech-spec.md` §9 — accessibility and non-functional constraints that bound these design decisions

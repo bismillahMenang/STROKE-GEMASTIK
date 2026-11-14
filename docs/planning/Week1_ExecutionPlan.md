@@ -1,3 +1,5 @@
+> **Catatan historis:** Dokumen ini ditulis sebelum migrasi ke PostgreSQL/Prisma. Arsitektur aktif ada di `docs/engineering/tech-spec.md`.
+
 # Week 1 Execution Plan: From Zero to Gyroscope Baseline on Phone
 
 **Goal by Friday EOD:** Gyroscope app running on your phone, recording ROM values, saving to cloud.

@@ -1,8 +1,10 @@
-# STROKE-GEMASTIK / PulihTrack
+# STROKE-GEMASTIK / RehabTrack
 
-Aplikasi rehabilitasi pasca-stroke berbasis ponsel untuk pasien dan dashboard web untuk terapis. Pasien mencatat latihan Range of Motion (ROM) menggunakan sensor gyroscope, melihat progres, dan melakukan pemeriksaan tambahan (simetri wajah & kejelasan bicara). Terapis dapat memantau progres pasien, memberikan catatan mingguan, dan melakukan video call.
+**RehabTrack: Sistem Monitoring Rehabilitasi Pasca-Stroke Berbasis Smartphone dengan Pelacakan Range-of-Motion Menggunakan Gyroscope dan Tele-Supervision Asinkron**
 
-> **Catatan lingkup:** Dokumen perencanaan MVP (`implementation_plan.md`) awalnya tidak menyertakan fitur kamera/audio/ML. Saat ini codebase sudah memasuki **roadmap Phase 2** dengan fitur tambahan *facial asymmetry* dan *speech clarity assessment*.
+Aplikasi rehabilitasi pasca-stroke berbasis ponsel untuk pasien dan dashboard web untuk terapis. Pasien mencatat latihan Range of Motion (ROM) menggunakan sensor gyroscope, melihat progres, dan terapis memantau kemajuan pasien, memberikan catatan mingguan, serta melakukan video call secara asinkron.
+
+> **Catatan lingkup:** Implementasi saat ini dibatasi pada fitur **Phase 1 (MVP)**: pelacakan ROM berbasis gyroscope + tele-supervision asinkron. Fitur Phase 2 (kamera/audio/ML) ditunda dan didokumentasikan di `docs/engineering/roadmap-phase2-3.md`.
 
 ---
 
@@ -16,8 +18,6 @@ Aplikasi rehabilitasi pasca-stroke berbasis ponsel untuk pasien dan dashboard we
 | Database | PostgreSQL (Supabase / lokal) |
 | Auth | JWT + bcryptjs |
 | Charts | react-native-chart-kit (mobile), recharts (web) |
-| Face detection | react-native-vision-camera + face-detector (Phase 2) |
-| Audio | expo-audio + TensorFlow.js (Phase 2) |
 
 ---
 
@@ -26,23 +26,27 @@ Aplikasi rehabilitasi pasca-stroke berbasis ponsel untuk pasien dan dashboard we
 ```
 STROKE-GEMASTIK/
 ├── client/                 # Aplikasi pasien (Expo)
-│   ├── screens/            # Auth, ExerciseSelect, ExerciseSession, Progress, FaceCheck, SpeechCheck
+│   ├── screens/            # Auth, ExerciseSelect, ExerciseSession, Progress
 │   ├── components/         # GyroSensor, ROMChart, SessionCard, SessionSummary
 │   ├── api/client.js       # HTTP client + sync logic
-│   └── utils/              # gyroProcessing, storage, faceMetrics, constants, i18n
+│   └── utils/              # gyroProcessing, storage, constants, i18n
 ├── therapist-dashboard/    # Dashboard terapis (Vite + React)
 │   ├── src/pages/          # Login, PatientList, PatientDetail
-│   ├── src/components/     # ROMTrendChart, SessionLog, WeeklyNoteEditor, AssessmentSummary
+│   ├── src/components/     # ROMTrendChart, SessionLog, WeeklyNoteEditor
 │   └── src/api/            # therapistAPI.js
 ├── server/                 # REST API
-│   ├── models/             # Patient, Therapist, Session, TherapistNote, Assessment
-│   ├── routes/             # auth, sessions, patient, therapist, assessments
+│   ├── routes/             # auth, sessions, patient, therapist
 │   ├── middleware/         # authMiddleware.js
-│   ├── scripts/            # verifyModels, smokeApi, verifySessions, dll.
+│   ├── prisma/             # Schema + migrations (PostgreSQL)
+│   ├── scripts/            # smokeApi, verifikasi
 │   └── seed.js             # Data demo
-├── data/                   # Test fixture generator & unit tests
-├── prd.md, tech-spec.md, implementation_plan.md
-├── app-flow.md, design-brief.md, rules.md
+├── data/                   # Fixture ROM + unit test
+├── docs/                   # Dokumen perencanaan & spesifikasi
+│   ├── product/            # PRD, validasi masalah, audit scope
+│   ├── engineering/        # Tech spec, implementation plan, app flow, design, rules, roadmap
+│   ├── planning/           # Execution plans
+│   └── manuals/            # Manual pasien & terapis
+├── AGENTS.md               # Instruksi untuk AI coding agents
 └── README.md
 ```
 
@@ -59,7 +63,7 @@ STROKE-GEMASTIK/
 
 ## 1. Setup Backend
 
-Backend sekarang menggunakan **PostgreSQL** melalui **Prisma ORM**. Database bisa di-host di **Supabase** (cloud) atau dijalankan secara lokal via Docker/Podman.
+Backend menggunakan **PostgreSQL** melalui **Prisma ORM**. Database bisa di-host di **Supabase** (cloud) atau dijalankan secara lokal via Docker/Podman.
 
 ### Opsi A: Supabase (Rekomendasi)
 
@@ -75,6 +79,8 @@ DATABASE_URL=postgresql://postgres:[PASSWORD]@db.[PROJECT_REF].supabase.co:5432/
 JWT_SECRET=super-random-secret-min-32-char
 NODE_ENV=development
 CORS_ORIGIN=http://localhost:5173,http://localhost:19006
+AUTH_RATE_LIMIT_WINDOW_MS=900000
+AUTH_RATE_LIMIT_MAX=10
 ```
 
 ### Opsi B: PostgreSQL Lokal dengan Docker
@@ -118,12 +124,14 @@ Pada PowerShell, gunakan `Copy-Item .env.example .env` sebagai pengganti `cp`.
 | POST | `/api/auth/login` | Login pasien |
 | POST | `/api/auth/login-therapist` | Login terapis |
 | GET | `/api/patient/me` | Profil pasien |
+| GET | `/api/patient/notes` | Catatan mingguan terapis untuk pasien |
+| GET | `/api/patient/prescription?exercise=` | Resep aktif per latihan |
 | POST/GET | `/api/patient/sessions` | Sesi pasien |
-| POST/GET | `/api/patient/assessments` | Assessment Phase 2 |
 | GET | `/api/therapist/patients` | Daftar pasien terapis |
 | GET | `/api/therapist/patients/:id` | Detail pasien |
 | PATCH | `/api/therapist/patients/:id/notes` | Catatan mingguan |
 | PATCH | `/api/therapist/patients/:id/sessions/:sessionId/review` | Review sesi |
+| PUT | `/api/therapist/patients/:id/prescription` | Simpan resep latihan |
 
 ---
 
@@ -132,8 +140,9 @@ Pada PowerShell, gunakan `Copy-Item .env.example .env` sebagai pengganti `cp`.
 ```bash
 cd therapist-dashboard
 npm install
-# Buat file .env.local jika backend tidak di localhost:5000
+# Buat file .env.local
 # VITE_API_URL=http://localhost:5000/api
+# VITE_THERAPIST_CALL_URL=https://meet.google.com/abc-defg-hij
 npm run dev       # http://localhost:5173
 npm run build     # Build production ke dist/
 ```
@@ -155,7 +164,7 @@ npm install
 ### Menjalankan di perangkat fisik
 
 1. Pastikan ponsel dan komputer berada di jaringan yang sama.
-2. Edit `client/utils/constants.js` dan ganti `<your-local-ip>` dengan IP lokal komputer Anda.
+2. Salin `client/.env.example` menjadi `client/.env`, lalu isi `EXPO_PUBLIC_API_URL` dengan IP lokal komputer (bukan localhost) dan `EXPO_PUBLIC_THERAPIST_CALL_URL` dengan link video call.
 3. Jalankan:
 
 ```bash
@@ -185,12 +194,22 @@ Akun demo pasien dari seed:
 ## Menjalankan Test
 
 ```powershell
-# Synthetic validation suite: 25 tests
-node --test data/facial_asymmetry.test.js data/dysarthria.test.js data/rom.test.js
+# ROM fixture test
+node --test data/rom.test.js
 
 # Backend model verification
 Push-Location server
 npm test
+Pop-Location
+
+# Backend validation tests (tanpa database)
+Push-Location server
+npm run test:validation
+Pop-Location
+
+# Integration test end-to-end (butuh Docker)
+Push-Location server
+npm run test:integration
 Pop-Location
 
 # Seed demo data
@@ -218,45 +237,51 @@ cd server
 node scripts/smokeApi.js
 ```
 
+Integration test `npm run test:integration` menjalankan PostgreSQL ephemeral di port `55432`, menerapkan migrasi, mengisi seed, menyalakan API di port `5055`, lalu menjalankan smoke test. Container dan datanya dihapus setelah selesai, sehingga tidak menyentuh database produksi. Port dapat diubah lewat `TEST_PORT` dan `TEST_DATABASE_URL`.
+
 ---
 
 ## Status Implementasi
 
-Berdasarkan `implementation_plan.md`:
+Berdasarkan `docs/engineering/implementation_plan.md`:
 
 | Phase | Status |
 |-------|--------|
 | 0 — Scaffolding | ✅ Selesai |
 | 1 — Backend data layer + auth | ✅ Selesai |
 | 2 — Session & therapist APIs | ✅ Selesai |
-| 3 — Mobile ROM tracking | ✅ Selesai (3 latihan inti + 3 latihan Phase 2) |
+| 3 — Mobile ROM tracking | ✅ Selesai |
 | 4 — Progress + navigation | ✅ Selesai |
 | 5 — Mobile ↔ backend sync | ✅ Selesai (offline-safe) |
 | 6 — Therapist dashboard | ✅ Selesai |
 | 7 — Localization | ⚠️ Ada `i18n.js`, belum 100% coverage |
 | 8 — Polish & pilot readiness | ⚠️ Seed & manual ada, real-device testing belum tercatat |
-| Phase 2 — Face & speech assessments | ✅ Sudah dimulai |
 
-**Kesimpulan:** MVP sudah sekitar **85–90%**, dengan Phase 2 sudah mulai diimplementasikan.
+**Fitur yang sudah terhubung:** catatan terapis muncul di tab Catatan pasien, review sesi tersimpan di server, dan dashboard terapis dapat menyimpan target ROM, batas aman, serta target repetisi per latihan.
+
+**Kesimpulan:** MVP (Phase 1) sudah sekitar **90%**. Enam latihan, catatan terapis untuk pasien, review sesi persisten, dan editor resep latihan sudah terimplementasi. Fitur Phase 2 (kamera/audio/ML) ditunda sesuai keputusan scope terbaru. Sisa utama: uji perangkat fisik, validasi klinis target ROM, dan perluasan i18n.
 
 ---
 
 ## Catatan & Known Issues
 
-1. **API URL client masih placeholder** — ganti `<your-local-ip>` di `client/utils/constants.js` dengan IP komputer yang bisa diakses ponsel.
-2. **Phase 2 native build diperlukan** — face detector wrapper berbasis native module tidak berjalan penuh di Expo Go. Gunakan `npx expo prebuild` lalu `npx expo run:android` untuk development build.
-3. **Synthetic fixtures bukan validasi klinis** — hasil facial, audio, dan ROM hanya smoke test algoritma. Jangan gunakan pass rate-nya sebagai sensitivity/specificity pasien nyata.
-4. **Target ROM latihan tambahan provisional** — validasi target `wrist_flexion`, `finger_extension`, dan `resistance_band_row` dengan terapis sebelum pilot.
+1. **API URL client dibaca dari environment** — isi `EXPO_PUBLIC_API_URL` di `client/.env` dengan IP komputer yang bisa diakses ponsel. Tanpa itu, aplikasi memakai `localhost` yang hanya cocok untuk simulator atau web.
+2. **Target ROM latihan tambahan provisional** — validasi target `wrist_flexion`, `finger_extension`, dan `resistance_band_row` dengan terapis sebelum pilot.
 
 ---
 
 ## Dokumen Terkait
 
-- `prd.md` — Product requirements
-- `tech-spec.md` — Spesifikasi teknis lengkap
-- `implementation_plan.md` — Urutan build MVP
-- `app-flow.md` — Alur navigasi aplikasi
-- `design-brief.md` — Sistem visual & UX
-- `rules.md` — Aturan coding
-- `PATIENT_MANUAL.md` — Manual pasien
-- `THERAPIST_MANUAL.md` — Manual terapis
+- `docs/product/prd.md` — Product requirements
+- `docs/engineering/tech-spec.md` — Spesifikasi teknis lengkap
+- `docs/engineering/implementation_plan.md` — Urutan build MVP
+- `docs/engineering/app-flow.md` — Alur navigasi aplikasi
+- `docs/engineering/design-brief.md` — Sistem visual & UX
+- `docs/engineering/rules.md` — Aturan coding
+- `docs/engineering/roadmap-phase2-3.md` — Roadmap Phase 2 & 3
+- `docs/manuals/PATIENT_MANUAL.md` — Manual pasien
+- `docs/manuals/THERAPIST_MANUAL.md` — Manual terapis
+
+## Atribusi
+
+Arsitektur pelacakan ROM (integrasi giroskop, offline-first sync, deteksi rep berbasis hysteresis) dikembangkan sendiri oleh tim RehabTrack berdasarkan riset biomechanics dan literatur terkait rehabilitasi pasca-stroke.
