@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  server:
+    name: Server tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: rehabtrack
+          POSTGRES_PASSWORD: rehabtrack_test
+          POSTGRES_DB: rehabtrack_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U rehabtrack -d rehabtrack_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://rehabtrack:rehabtrack_test@localhost:5432/rehabtrack_test
+      JWT_SECRET: ci-test-secret-change-me
+      NODE_ENV: test
+      CORS_ORIGIN: http://localhost:5173
+      AUTH_RATE_LIMIT_MAX: "1000"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - name: Install server dependencies
+        working-directory: server
+        run: npm ci
+      - name: Generate Prisma client
+        working-directory: server
+        run: npx prisma generate
+      - name: Validate Prisma schema
+        working-directory: server
+        run: npx prisma validate
+      - name: Apply migrations
+        working-directory: server
+        run: npx prisma migrate deploy
+      - name: Seed demo data
+        working-directory: server
+        run: npm run seed
+      - name: Run validation tests
+        working-directory: server
+        run: npm run test:validation
+      - name: Run API smoke test
+        working-directory: server
+        run: |
+          node server.js > /tmp/rehabtrack-api.log 2>&1 &
+          API_PID=$!
+          trap 'kill $API_PID 2>/dev/null || true' EXIT
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:5000/api/health > /dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          curl -fsS http://localhost:5000/api/health
+          node scripts/smokeApi.js
+      - name: Run ROM and metric checks
+        run: |
+          node --test data/rom.test.js
+          node client/scripts/metrics-check.js
+
+  dashboard:
+    name: Dashboard build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: therapist-dashboard/package-lock.json
+      - name: Install dashboard dependencies
+        working-directory: therapist-dashboard
+        run: npm ci
+      - name: Build dashboard
+        working-directory: therapist-dashboard
+        run: npm run build
