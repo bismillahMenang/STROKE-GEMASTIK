@@ -121,30 +121,51 @@
 
 ### Checkpoint 4: Selesai
 
-- [ ] Task prioritas 1 sampai 13 selesai.
-- [ ] Test dan build lulus.
-- [ ] Alur pasien dan terapis diuji end-to-end.
-- [ ] Dokumentasi konsisten.
-- [ ] Tidak ada secret atau data pasien nyata.
-- [ ] Manusia menyetujui hasil sebelum rilis.
+- [x] Task prioritas 1 sampai 13 selesai.
+- [x] Test dan build lulus.
+- [x] API end-to-end diuji dengan PostgreSQL lokal.
+- [x] Dokumentasi konsisten.
+- [x] Tidak ada secret atau data pasien nyata.
+- [ ] Uji perangkat fisik.
+- [ ] Sign-off manusia sebelum rilis.
 
 ---
 
-## Blocker saat ini
+## Phase 5: Release readiness (post-commit)
 
-- [x] Database Supabase tidak dapat dijangkau dari environment ini. Digantikan oleh `npm run test:integration` dengan PostgreSQL ephemeral di Docker.
-- [x] Keputusan scope resep dan jumlah latihan sudah dicatat.
-- [ ] Persetujuan untuk commit 118 perubahan belum ada.
-- [ ] Uji runtime di perangkat fisik dan klik link video call belum dilakukan.
-- [ ] Task 16 (i18n dan tema) ditunda karena prioritas rendah.
+- [ ] **Task 17: CI workflow** (in progress)
+  - Acceptance: GitHub Actions menjalankan integration test server dan build dashboard.
+  - Verification: YAML parse dan workflow lulus setelah push.
+- [ ] **Task 18: Browser regression test editor resep**
+  - Acceptance: login terapis, pilih pasien, simpan resep, verifikasi pesan sukses dan nilai API.
+  - Verification: jalankan test browser terhadap stack lokal.
+- [ ] **Task 19: Staging deployment runbook**
+  - Acceptance: backend, PostgreSQL, dashboard, env, migrate, seed, dan smoke test terdokumentasi serta dijalankan.
+  - Verification: deploy staging dan jalankan smoke test.
+- [ ] **Task 20: Physical device smoke test**
+  - Acceptance: 6 latihan, kalibrasi, audio, sync offline, catatan, dan link video call diuji.
+  - Verification: checklist Android dan iOS.
+- [ ] **Task 21: Clinical validation target ROM**
+  - Acceptance: terapis menyetujui atau menyesuaikan target 6 latihan.
+  - Verification: catatan validasi klinis dan re-run integration test.
+- [ ] **Task 16: i18n dan tema** — DITUNDA
+  - Status: backlog setelah release readiness.
 
 ---
+
+## Status commit
+
+- [x] 8 commit berurutan dibuat.
+- [x] Worktree bersih setelah commit sebelumnya.
+- [ ] CI workflow dan pembaruan plan/README belum di-commit.
+- [ ] Push ke `origin/main`.
+- [ ] Sign-off manusia.
+- [ ] Uji perangkat fisik.
 
 ## Aksi eksternal yang tersisa
 
-Semua pekerjaan kode yang direncanakan sudah selesai. Yang tersisa membutuhkan manusia atau perangkat:
-
-1. Setujui dan eksekusi pengelompokan commit di `tasks/plan.md`.
-2. Review dan sign-off dokumen produk dan engineering.
-3. Uji aplikasi di perangkat fisik dengan `EXPO_PUBLIC_API_URL` dan link video call yang nyata.
-4. Putuskan apakah Task 16 (i18n penuh dan tema otomatis) akan dikerjakan sebelum rilis.
+1. Push commit ke `origin/main`.
+2. Deploy staging dan jalankan smoke test.
+3. Uji perangkat fisik Android dan iOS.
+4. Validasi klinis target ROM.
+5. Review dan sign-off dokumen produk serta engineering.

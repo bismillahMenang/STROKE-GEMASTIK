@@ -239,6 +239,8 @@ node scripts/smokeApi.js
 
 Integration test `npm run test:integration` menjalankan PostgreSQL ephemeral di port `55432`, menerapkan migrasi, mengisi seed, menyalakan API di port `5055`, lalu menjalankan smoke test. Container dan datanya dihapus setelah selesai, sehingga tidak menyentuh database produksi. Port dapat diubah lewat `TEST_PORT` dan `TEST_DATABASE_URL`.
 
+CI: `.github/workflows/ci.yml` menjalankan integration test server dan build dashboard pada push ke `main` dan pull request.
+
 ---
 
 ## Status Implementasi

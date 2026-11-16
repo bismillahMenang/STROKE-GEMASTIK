@@ -482,25 +482,144 @@ Catatan: `data/reference/` dan file `.dev.*` tidak boleh di-commit. Commit hanya
 
 ---
 
+### Phase 6: Release readiness (post-commit)
+
+#### Task 17: CI workflow for server and dashboard
+
+**Description:** Add a GitHub Actions workflow that runs the server integration test and dashboard build on push and pull request.
+
+**Acceptance criteria:**
+- [ ] Workflow triggers on push to main and pull_request.
+- [ ] PostgreSQL service, `prisma migrate deploy`, seed, and smoke test run.
+- [ ] Validation tests, ROM tests, and metric checks run.
+- [ ] Dashboard `npm ci` and `npm run build` run.
+- [ ] YAML parses cleanly.
+
+**Verification:**
+- [ ] Parse `.github/workflows/ci.yml` with `js-yaml`.
+- [ ] Push a branch and confirm the workflow passes.
+- [ ] Confirm a failing test exits non-zero.
+
+**Dependencies:** Task 15.
+
+**Files likely touched:** `.github/workflows/ci.yml`, `README.md`.
+
+**Estimated scope:** Small.
+
+---
+
+#### Task 18: Browser regression test for prescription editor
+
+**Description:** Automate the therapist flow for saving a prescription so the UI is verified beyond build and API tests.
+
+**Acceptance criteria:**
+- [ ] Test logs in as therapist.
+- [ ] Test opens a patient and selects an exercise.
+- [ ] Test changes target ROM, safe ceiling, and target reps.
+- [ ] Test sees "Resep tersimpan." and verifies the API value.
+- [ ] Test fails if the prescription is rejected or not persisted.
+
+**Verification:**
+- [ ] Run the browser test against the local integration stack.
+- [ ] Confirm failure output is actionable.
+
+**Dependencies:** Task 12, Task 15.
+
+**Files likely touched:** `therapist-dashboard/scripts/ui-prescription.mjs`, `therapist-dashboard/package.json`, `README.md`.
+
+**Estimated scope:** Medium.
+
+---
+
+#### Task 19: Staging deployment runbook
+
+**Description:** Document and execute a staging deployment for the backend, PostgreSQL, and dashboard.
+
+**Acceptance criteria:**
+- [ ] Backend deployed with `DATABASE_URL`, `JWT_SECRET`, `CORS_ORIGIN`, and rate-limit env.
+- [ ] `prisma migrate deploy` and seed run against staging.
+- [ ] Dashboard deployed with `VITE_API_URL` and `VITE_THERAPIST_CALL_URL`.
+- [ ] Mobile build points to the staging API.
+- [ ] Smoke test passes against staging.
+
+**Verification:**
+- [ ] Run `node scripts/smokeApi.js` with `API_BASE_URL` pointing to staging.
+- [ ] Check dashboard login and patient detail.
+
+**Dependencies:** Task 17.
+
+**Files likely touched:** `README.md`, deployment config.
+
+**Estimated scope:** Medium.
+
+---
+
+#### Task 20: Physical device smoke test checklist
+
+**Description:** Verify the parts that cannot be tested headlessly: gyroscope, audio, offline sync, and external links.
+
+**Acceptance criteria:**
+- [ ] All 6 exercises can be selected and recorded.
+- [ ] Calibration, rep counting, target sound, and ceiling warning work.
+- [ ] Offline sessions sync after reconnect.
+- [ ] Therapist notes appear in the Catatan tab.
+- [ ] Video call link opens the configured URL.
+- [ ] Results are recorded per Android and iOS device.
+
+**Verification:**
+- [ ] Follow the checklist on a physical device.
+- [ ] Record device model, OS version, and results.
+
+**Dependencies:** Task 15, Task 19.
+
+**Files likely touched:** `docs/manuals/PATIENT_MANUAL.md`, `docs/manuals/THERAPIST_MANUAL.md`.
+
+**Estimated scope:** Small, external execution.
+
+---
+
+#### Task 21: Clinical validation of provisional ROM targets
+
+**Description:** Validate the three provisional exercise targets with a therapist before pilot use.
+
+**Acceptance criteria:**
+- [ ] Therapist reviews wrist flexion, finger extension, and resistance band row targets.
+- [ ] Target ROM, safe ceiling, and target reps are either approved or adjusted.
+- [ ] Changes are reflected in defaults or prescriptions.
+- [ ] Validation note is stored in the project docs.
+
+**Verification:**
+- [ ] Obtain written therapist sign-off.
+- [ ] Re-run integration tests after changing targets.
+
+**Dependencies:** Task 12, Task 16 decision.
+
+**Files likely touched:** `client/utils/constants.js`, `docs/product/prd.md`, validation notes.
+
+**Estimated scope:** Small, external execution.
+
+---
+
 ### Checkpoint 4: Selesai
 
-- [ ] Semua task prioritas 1 sampai 13 selesai.
-- [ ] Test dan build lulus.
-- [ ] Alur pasien dan terapis diuji end-to-end.
-- [ ] Dokumentasi konsisten.
-- [ ] Tidak ada secret atau data pasien nyata di repo.
+- [x] Semua task prioritas 1 sampai 13 selesai.
+- [x] Test dan build lulus.
+- [x] API end-to-end diuji dengan PostgreSQL lokal.
+- [x] Dokumentasi konsisten.
+- [x] Tidak ada secret atau data pasien nyata di repo.
+- [ ] Uji perangkat fisik selesai.
 - [ ] Manusia menyetujui hasil sebelum rilis.
 
 ## Risks and Mitigations
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| 107 file belum di-commit dan bercampur | High | Task 1 memverifikasi dan mengelompokkan commit sebelum pekerjaan baru. Commit hanya setelah persetujuan. |
-| Scope resep dan 6 latihan belum diputuskan | High | Task 2 menjadi gate. Jangan implementasi Task 12 sebelum keputusan. |
-| Database Supabase tidak dapat dijangkau dari environment ini | High | Gunakan PostgreSQL lokal atau Docker untuk test. Jangan mengandalkan Supabase untuk verifikasi otomatis. |
-| Menambah dependency rate limit | Medium | Catat di tech spec dan minta persetujuan. |
-| Perubahan env Expo tidak terbaca | Medium | Uji dengan restart Metro dan dokumentasikan variabel `EXPO_PUBLIC_*`. |
-| Refactor file besar menimbulkan regresi | Medium | Lakukan setelah fitur stabil, dengan parse, metrics-check, dan uji manual. |
+| Push dan deployment belum dilakukan | High | Task 17 CI workflow dan Task 19 staging runbook. |
+| Target ROM tiga latihan tambahan masih provisional | High | Task 21 validasi klinis dengan terapis. |
+| Database Supabase tidak dapat dijangkau dari environment ini | High | Gunakan `npm run test:integration` dengan PostgreSQL ephemeral. |
+| Uji perangkat fisik belum dilakukan | High | Task 20 checklist Android dan iOS. |
+| Editor resep belum diuji di browser | Medium | Task 18 browser regression test. |
+| Refactor file besar menimbulkan regresi | Medium | Parse, metrics-check, dan integration test setelah refactor. |
 | Perubahan CORS memblokir dashboard | Medium | Uji tiga skenario: origin diizinkan, ditolak, dan tanpa Origin. |
 
 ## Open Questions
