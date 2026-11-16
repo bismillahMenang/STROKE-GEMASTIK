@@ -15,8 +15,8 @@
 
 ## Phase 0: Baseline dan keputusan scope
 
-- [ ] **Task 1: Verifikasi dan kelompokkan baseline migrasi Prisma**
-  - Status: verifikasi dan usulan commit selesai, menunggu approval commit.
+- [x] **Task 1: Verifikasi dan kelompokkan baseline migrasi Prisma**
+  - Status: 10 commit berurutan dibuat dan worktree bersih. Push ke `origin` belum.
   - Acceptance: semua parse, test, Prisma validate, build dashboard, dan health check lulus.
   - Verification: jalankan seluruh perintah baseline dan tinjau `git diff`.
 - [x] **Task 2: Putuskan scope resep dan jumlah latihan**
@@ -26,10 +26,10 @@
 
 ### Checkpoint 0
 
-- [ ] Task 1 dan Task 2 selesai.
-- [ ] Semua pemeriksaan baseline lulus.
-- [ ] Keputusan scope disetujui.
-- [ ] Rencana commit disetujui sebelum commit pertama.
+- [x] Task 1 dan Task 2 selesai.
+- [x] Semua pemeriksaan baseline lulus.
+- [ ] Keputusan scope disetujui manusia.
+- [x] Rencana commit disetujui dan dieksekusi.
 
 ---
 
@@ -155,9 +155,9 @@
 
 ## Status commit
 
-- [x] 8 commit berurutan dibuat.
-- [x] Worktree bersih setelah commit sebelumnya.
-- [ ] CI workflow dan pembaruan plan/README belum di-commit.
+- [x] 10 commit berurutan dibuat.
+- [x] Worktree bersih setelah commit.
+- [x] CI workflow dan pembaruan plan/README sudah di-commit.
 - [ ] Push ke `origin/main`.
 - [ ] Sign-off manusia.
 - [ ] Uji perangkat fisik.
