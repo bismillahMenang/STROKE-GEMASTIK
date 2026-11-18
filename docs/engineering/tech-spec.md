@@ -104,7 +104,13 @@ STROKE-GEMASTIK/
 │   │   ├── storage.js
 │   │   └── streak.js
 │   ├── i18n.js
-│   └── assets/
+│   ├── assets/
+│   └── tests/
+│       ├── rom.test.js
+│       ├── generate_rom_fixtures.js
+│       └── fixtures/
+├── mobile/                      # Flutter app, planned; no code yet
+│   └── README.md
 ├── therapist-dashboard/
 │   ├── src/
 │   │   ├── pages/Login.jsx
@@ -134,15 +140,18 @@ STROKE-GEMASTIK/
 │   ├── scripts/
 │   ├── seed.js
 │   └── .env.example
-├── data/
-│   ├── rom.test.js
-│   ├── generate_rom_fixtures.js
-│   └── test/fixtures/
 ├── docs/
 │   ├── product/
 │   ├── engineering/
 │   ├── planning/
+│   │   ├── mvp-stabilization-plan.md
+│   │   ├── mvp-stabilization-todo.md
+│   │   ├── phase2-execution-plan.md
+│   │   ├── phase2/
+│   │   └── archive/
+│   ├── setup/
 │   └── manuals/
+├── references/                  # local reference repositories, gitignored
 ├── AGENTS.md
 └── README.md
 ```

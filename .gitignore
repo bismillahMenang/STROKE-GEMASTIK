@@ -53,7 +53,7 @@ coverage/
 .dev.log
 
 # Local reference repositories (not part of the product)
-data/reference/
+references/
 
 # Tooling / generated
 .opencode/

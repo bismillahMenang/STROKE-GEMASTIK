@@ -11,7 +11,7 @@
 ## Phase 0 — Project scaffolding
 
 ### Step 0.1 — Repository structure
-**Do:** Create the folder structure exactly as defined in `tech-spec.md` §3 (`client/`, `therapist-dashboard/`, `server/`, `data/`, `docs/`, plus `README.md` and `AGENTS.md` at root).
+**Do:** Create the folder structure exactly as defined in `tech-spec.md` §3 (`client/`, `mobile/` (planned Flutter app), `therapist-dashboard/`, `server/`, `docs/`, `references/` (gitignored), plus `README.md` and `AGENTS.md` at root).
 **Verify:** `tree -L 2` (or equivalent) matches the structure in `tech-spec.md`.
 
 ### Step 0.2 — Git setup
