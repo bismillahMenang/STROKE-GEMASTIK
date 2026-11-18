@@ -108,9 +108,9 @@ wget https://www.openslr.org/resources/12/dev-clean.tar.gz
 tar xzf dev-clean.tar.gz
 
 # Start your data generator scripts
-python data/facial_asymmetry_generator.py --output synthetic_faces/ --count 150
-python data/dysarthria_generator.py --input TIMIT/ --output synthetic_speech/ --count 120
-node data/rom_trajectory_generator.js --output synthetic_gyro/ --exercises 3
+python client/tests/facial_asymmetry_generator.py --output client/tests/fixtures/phase2/synthetic_faces/ --count 150
+python client/tests/dysarthria_generator.py --input TIMIT/ --output client/tests/fixtures/phase2/synthetic_speech/ --count 120
+node client/tests/rom_trajectory_generator.js --output client/tests/fixtures/phase2/synthetic_gyro/ --exercises 3
 ```
 
 ### Week 2: Algorithm Implementation

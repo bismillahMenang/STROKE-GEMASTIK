@@ -1,6 +1,6 @@
 # Todo: Stabilisasi dan Penyelesaian RehabTrack MVP
 
-**Plan lengkap:** `tasks/plan.md`
+**Plan lengkap:** `docs/planning/mvp-stabilization-plan.md`
 **Status:** Menunggu persetujuan manusia. Jangan mulai implementasi sebelum plan disetujui.
 **Mulai dari:** Task 1 (verifikasi baseline) dan Task 2 (keputusan scope).
 
@@ -8,7 +8,7 @@
 
 - [ ] Plan ini disetujui manusia.
 - [ ] Tidak ada commit, push, atau rewrite history tanpa persetujuan.
-- [ ] Setiap task harus lulus acceptance criteria dan verification di `tasks/plan.md`.
+- [ ] Setiap task harus lulus acceptance criteria dan verification di `docs/planning/mvp-stabilization-plan.md`.
 - [ ] Update checklist ini setelah setiap task selesai.
 
 ---

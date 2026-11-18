@@ -33,7 +33,7 @@ Urutan yang direkomendasikan:
 **Acceptance criteria:**
 - [ ] Seluruh source client dan dashboard lolos Babel parse.
 - [ ] Seluruh file server lolos `node --check`.
-- [ ] `node --test data/rom.test.js` lulus 9/9.
+- [ ] `node --test client/tests/rom.test.js` lulus 9/9.
 - [ ] `node client/scripts/metrics-check.js` lulus.
 - [ ] `npx prisma validate` lulus.
 - [ ] `npm run build` di `therapist-dashboard` lulus.
@@ -55,7 +55,7 @@ Urutan yang direkomendasikan:
 
 1. `chore: ignore local dev logs and reference repositories`
    - `.gitignore`
-   - Mencegah `server/.dev.*`, `therapist-dashboard/.dev.*`, dan `data/reference/Pulihgo` masuk repo.
+   - Mencegah `server/.dev.*`, `therapist-dashboard/.dev.*`, dan `references/Pulihgo` masuk repo.
 2. `refactor(server): migrate data layer to Prisma and PostgreSQL`
    - `server/prisma/schema.prisma`, `server/prisma/migrations/`, `server/lib/prisma.js`, `server/server.js`, `server/routes/*`, `server/seed.js`, `server/scripts/*`, `server/package.json`, `server/package-lock.json`
    - Hapus `server/routes/assessments.js`.
@@ -69,14 +69,14 @@ Urutan yang direkomendasikan:
    - `client/App.js`, `client/screens/`, `client/components/`, `client/theme/`, `client/utils/`, `client/api/`, `client/assets/sounds/`, `client/package.json`, `client/app.json`, `client/babel.config.js`, `client/.env.example`.
 6. `feat(dashboard): refresh therapist workflows and Prisma ids`
    - `therapist-dashboard/src/`, `therapist-dashboard/index.html`, `therapist-dashboard/public/`, `therapist-dashboard/.env.example`.
-7. `test(data): add ROM fixtures and metric checks`
-   - `data/test/fixtures/`, `data/rom.test.js`, `data/generate_rom_fixtures.js`, `client/scripts/metrics-check.js`, `client/scripts/generate-sounds.js`.
+7. `test(client): add ROM fixtures and metric checks`
+   - `client/tests/fixtures/`, `client/tests/rom.test.js`, `client/tests/generate_rom_fixtures.js`, `client/scripts/metrics-check.js`, `client/scripts/generate-sounds.js`.
 8. `docs: restructure planning, product, engineering, and manuals`
-   - `docs/`, `data/docs/`, `README.md`, `AGENTS.md`, penghapusan dokumen root lama.
+   - `docs/` (termasuk `docs/setup/` dan `docs/planning/phase2/`), `README.md`, `AGENTS.md`, penghapusan dokumen root lama.
 9. `chore: add implementation plan and task checklist`
-   - `tasks/plan.md`, `tasks/todo.md`.
+   - `docs/planning/mvp-stabilization-plan.md`, `docs/planning/mvp-stabilization-todo.md`.
 
-Catatan: `data/reference/` dan file `.dev.*` tidak boleh di-commit. Commit hanya dilakukan setelah manusia menyetujui pengelompokan ini.
+Catatan: `references/` dan file `.dev.*` tidak boleh di-commit. Commit hanya dilakukan setelah manusia menyetujui pengelompokan ini.
 
 ---
 

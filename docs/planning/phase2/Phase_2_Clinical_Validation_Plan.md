@@ -140,15 +140,15 @@ const impairedTrajectory = [
 
 **Tasks:**
 - [ ] Download CelebA (~1.3 GB), TIMIT (~500 MB), LibriSpeech sample
-- [ ] Write `data/facial_asymmetry_generator.py` (synthetic asymmetric faces)
-- [ ] Write `data/dysarthria_generator.py` (synthetic speech degradation)
-- [ ] Write `data/rom_trajectory_generator.js` (synthetic gyro data)
-- [ ] Document clinical thresholds in `VALIDATION_PROTOCOL.md`:
+- [ ] Write `client/tests/facial_asymmetry_generator.py` (synthetic asymmetric faces)
+- [ ] Write `client/tests/dysarthria_generator.py` (synthetic speech degradation)
+- [ ] Write `client/tests/rom_trajectory_generator.js` (synthetic gyro data)
+- [ ] Document clinical thresholds in `docs/planning/phase2/VALIDATION_PROTOCOL.md`:
   - Facial asymmetry threshold = 0.3 (source: stroke facial droop severity scale)
   - Dysarthria threshold = 0.4 (source: Frenchay Dysarthria Assessment + stroke literature)
   - ROM normal ranges per exercise (source: therapist domain knowledge + prior sessions)
 
-**Deliverable:** `data/` folder with generators + `VALIDATION_PROTOCOL.md`
+**Deliverable:** Generators under `client/tests/` plus `docs/planning/phase2/VALIDATION_PROTOCOL.md`
 
 ### Week 2: Algorithm Development & Native Build
 **Goal:** Implement facial asymmetry + dysarthria detection; create native build for testing.
@@ -309,7 +309,7 @@ The judges read the PPL rubric (development methodology = 20%):
 
 | Week | Deliverable | Status |
 |------|-------------|--------|
-| 1 | `data/` generators + `VALIDATION_PROTOCOL.md` | — |
+| 1 | Generators under `client/tests/` + `docs/planning/phase2/VALIDATION_PROTOCOL.md` | — |
 | 2 | Native build APK + assessment screens | — |
 | 3 | `VALIDATION_RESULTS.json` + test suite | — |
 | 4 | `DEVICE_QA_REPORT.md` | — |
