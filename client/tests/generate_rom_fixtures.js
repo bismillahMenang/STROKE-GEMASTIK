@@ -1,14 +1,14 @@
 /**
  * Generate 45 deterministic gyroscope fixtures for Phase 2 exercises.
  * The readings are angular velocity in rad/s, matching calculateROM().
- * Run: node data/generate_rom_fixtures.js
+ * Run: node client/tests/generate_rom_fixtures.js
  */
 
 const fs = require('fs');
 const path = require('path');
-const { calculateROM } = require('../client/utils/gyroProcessing');
+const { calculateROM } = require('../utils/gyroProcessing');
 
-const fixturesDir = path.join(__dirname, 'test', 'fixtures');
+const fixturesDir = path.join(__dirname, 'fixtures');
 const sampleRate = 100;
 const samplingInterval = 1 / sampleRate;
 const targets = { wrist_flexion: 60, finger_extension: 30, resistance_band_row: 45 };

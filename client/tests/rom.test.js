@@ -1,15 +1,15 @@
 /**
  * Phase 2 synthetic ROM tests for the three added exercises.
- * Run: node --test data/rom.test.js
+ * Run: node --test client/tests/rom.test.js
  */
 
 const fs = require('fs');
 const path = require('path');
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { calculateROM } = require('../client/utils/gyroProcessing');
+const { calculateROM } = require('../utils/gyroProcessing');
 
-const fixturesDir = path.join(__dirname, 'test', 'fixtures');
+const fixturesDir = path.join(__dirname, 'fixtures');
 
 function loadFixture(filename) {
   return JSON.parse(fs.readFileSync(path.join(fixturesDir, filename), 'utf8')).readings;

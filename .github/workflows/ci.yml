@@ -70,7 +70,7 @@ jobs:
           node scripts/smokeApi.js
       - name: Run ROM and metric checks
         run: |
-          node --test data/rom.test.js
+          node --test client/tests/rom.test.js
           node client/scripts/metrics-check.js
 
   dashboard:
