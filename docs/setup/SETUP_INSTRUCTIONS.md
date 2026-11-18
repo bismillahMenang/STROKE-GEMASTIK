@@ -1,10 +1,12 @@
 # Phase 2 Facial Fixture Setup
 
-The generator and test already live in `data/`:
+> Status: rencana. `client/tests/generate_facial_fixtures.js` dan `client/tests/facial_asymmetry.test.js` belum ada di repositori. Jangan menganggap fixture wajah sudah tersedia.
 
-- `data/generate_facial_fixtures.js`
-- `data/facial_asymmetry.test.js`
-- `data/test/fixtures/` (generated output)
+The generator and test already live in `client/tests/`:
+
+- `client/tests/generate_facial_fixtures.js`
+- `client/tests/facial_asymmetry.test.js`
+- `client/tests/fixtures/` (generated output)
 
 The fixtures are deterministic synthetic geometry. They are for algorithm smoke testing only, not clinical validation data.
 
@@ -13,10 +15,10 @@ The fixtures are deterministic synthetic geometry. They are for algorithm smoke 
 From the repository root:
 
 ```powershell
-node data/generate_facial_fixtures.js
+node client/tests/generate_facial_fixtures.js
 ```
 
-This creates six JSON files in `data/test/fixtures/`:
+This creates six JSON files in `client/tests/fixtures/`:
 
 ```text
 normal_face_1.json
@@ -32,7 +34,7 @@ severe_asymmetry_1.json
 Node 18 or newer is required because the test uses the built-in `node:test` runner:
 
 ```powershell
-node --test data/facial_asymmetry.test.js
+node --test client/tests/facial_asymmetry.test.js
 ```
 
 Expected result: 8 passing tests.
@@ -52,7 +54,7 @@ These thresholds are not clinical cutoffs and must not be presented as diagnosti
 The test imports the same utility used by the mobile camera flow:
 
 ```javascript
-const { calculateAsymmetryScore } = require('../client/utils/faceMetrics');
+const { calculateAsymmetryScore } = require('../utils/faceMetrics');
 ```
 
 If the utility changes, update the test import and rerun the generator before running the test suite.
@@ -62,7 +64,7 @@ If the utility changes, update the test import and rerun the generator before ru
 Check generated fixture count:
 
 ```powershell
-(Get-ChildItem data/test/fixtures -Filter '*.json').Count
+(Get-ChildItem client/tests/fixtures -Filter '*.json').Count
 ```
 
 Expected output:

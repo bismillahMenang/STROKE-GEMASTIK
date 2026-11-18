@@ -2,16 +2,16 @@
 
 Files:
 
-- `data/generate_rom_fixtures.js`
-- `data/rom.test.js`
-- Generated output: `data/test/fixtures/rom_*.json`
+- `client/tests/generate_rom_fixtures.js`
+- `client/tests/rom.test.js`
+- Generated output: `client/tests/fixtures/rom_*.json`
 
 The generator uses the same `client/utils/gyroProcessing.js` algorithm used by the mobile app. Readings are angular velocity in radians per second at 100 Hz.
 
 ## 1. Generate 45 fixtures
 
 ```powershell
-node data/generate_rom_fixtures.js
+node client/tests/generate_rom_fixtures.js
 ```
 
 It creates 15 files for each Phase 2 exercise:
@@ -25,7 +25,7 @@ The targets are provisional monitoring targets from `client/utils/constants.js`,
 ## 2. Run the nine tests
 
 ```powershell
-node --test data/rom.test.js
+node --test client/tests/rom.test.js
 ```
 
 Expected result: 9 passing tests.
@@ -33,7 +33,7 @@ Expected result: 9 passing tests.
 ## 3. Verify fixture count
 
 ```powershell
-(Get-ChildItem data/test/fixtures -Filter 'rom_*.json').Count
+(Get-ChildItem client/tests/fixtures -Filter 'rom_*.json').Count
 ```
 
 Expected output:

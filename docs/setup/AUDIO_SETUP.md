@@ -1,10 +1,12 @@
 # Synthetic Audio Fixture Setup
 
+> Status: rencana. `client/tests/generate_audio_fixtures.js` dan `client/tests/dysarthria.test.js` belum ada di repositori. Dokumen ini menyimpan rancangan format dan langkah saat skrip dibuat.
+
 Files:
 
-- `data/generate_audio_fixtures.js`
-- `data/dysarthria.test.js`
-- Generated output: `data/test/fixtures/*.wav`
+- `client/tests/generate_audio_fixtures.js`
+- `client/tests/dysarthria.test.js`
+- Generated output: `client/tests/fixtures/*.wav`
 
 The generator uses only Node built-ins. It does not require Tone, Jest, or an external audio package.
 
@@ -13,7 +15,7 @@ The generator uses only Node built-ins. It does not require Tone, Jest, or an ex
 From the repository root:
 
 ```powershell
-node data/generate_audio_fixtures.js
+node client/tests/generate_audio_fixtures.js
 ```
 
 The generator creates:
@@ -27,7 +29,7 @@ These are deterministic synthetic signals, not recordings of people and not clin
 ## 2. Run the eight tests
 
 ```powershell
-node --test data/dysarthria.test.js
+node --test client/tests/dysarthria.test.js
 ```
 
 Expected result: 8 passing tests.
@@ -43,7 +45,7 @@ Expected result: 8 passing tests.
 ## 4. Inspect WAV count
 
 ```powershell
-(Get-ChildItem data/test/fixtures -Filter '*.wav').Count
+(Get-ChildItem client/tests/fixtures -Filter '*.wav').Count
 ```
 
 Expected output:
